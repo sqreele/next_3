@@ -11,6 +11,8 @@ cd src
 
 # Create and set permissions for media and static directories
 mkdir -p /app/media/maintenance_job_images
+mkdir -p /app/media/maintenance_pm_images/$(date +%Y)/$(date +%m)
+mkdir -p /app/media/profile_images
 mkdir -p /app/static
 
 # Set permissions

@@ -142,7 +142,8 @@ services:
       - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL:-admin@pcms.live}
     depends_on:
       - nginx
-    command: sh -c "trap exit TERM; while :; do certbot renew -q && echo 'Renew checked'; sleep 12h & wait $$!; done"
+    entrypoint: ["/bin/sh", "-c"]
+    command: "trap exit TERM; while :; do certbot renew -q && echo 'Renew checked'; sleep 12h & wait $$!; done"
     networks:
       - app-network
 

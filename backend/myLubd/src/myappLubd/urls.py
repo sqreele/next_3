@@ -28,17 +28,17 @@ urlpatterns = [
     path('api/', include(router.urls)),
     
     # Authentication endpoints
-    path('api/v1/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/v1/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/auth/session/', views.CustomSessionView.as_view(), name='auth_session'),
     path('api/auth/_log', views.log_view, name='log_view'),
     path('api/auth/check/', views.auth_check, name='auth_check'),
     path('api/auth/login/', views.login_view, name='login'),
     path('api/auth/register/', views.RegisterView.as_view(), name='register'),
-    path('api/v1/auth/google/', views.google_auth, name='google_auth'),
+    path('api/auth/google/', views.google_auth, name='google_auth'),
     path('api/auth/providers/', views.auth_providers, name='auth_providers'),
-    path('api/v1/auth/password/forgot/', views.forgot_password, name='forgot_password'),
-    path('api/v1/auth/password/reset/', views.reset_password, name='reset_password'),
+    path('api/auth/password/forgot/', views.forgot_password, name='forgot_password'),
+    path('api/auth/password/reset/', views.reset_password, name='reset_password'),
     
     # Health check
     path('api/v1/health/', views.health_check, name='health_check'),

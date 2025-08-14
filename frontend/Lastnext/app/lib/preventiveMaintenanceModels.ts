@@ -185,7 +185,7 @@ export function getImageUrl(image: MaintenanceImage | any | null | undefined): s
           return image.url;
       }
       if ('path' in image && image.path) {
-          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://pmcs.site';
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://pcms.live';
           return `${apiUrl}${image.path}`;
       }
       

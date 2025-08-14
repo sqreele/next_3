@@ -38,7 +38,7 @@ export function debugConfig() {
 
 export function debugApiUrl() {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 
-    (process.env.NODE_ENV === "development" ? "http://localhost:8000" : "https://pmcs.site");
+    (process.env.NODE_ENV === "development" ? "http://localhost:8000" : "https://pcms.live");
   
   console.log('🌐 API URL Configuration:', {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,

@@ -60,7 +60,7 @@ async function getPreventiveMaintenance(pmId: string): Promise<PreventiveMainten
   }
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ||
-                 (process.env.NODE_ENV === "development" ? "http://localhost:8000" : "https://pmcs.site");
+                 (process.env.NODE_ENV === "development" ? "http://localhost:8000" : "https://pcms.live");
   const targetUrl = `${apiUrl}/api/v1/preventive-maintenance/${pmId}/`;
   console.log(`[SERVER_FETCH] Fetching URL: ${targetUrl} with token.`);
 

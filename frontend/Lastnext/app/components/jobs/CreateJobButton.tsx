@@ -28,11 +28,9 @@ import { Alert, AlertDescription } from "@/app/components/ui/alert";
 import { useSession, signIn } from 'next-auth/react';
 import { Label } from "@/app/components/ui/label";
 import RoomAutocomplete from './RoomAutocomplete';
-import FileUpload from './FileUpload';
 import { Room, TopicFromAPI } from '@/app/lib/types'; // Ensure types path is correct
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 // Configure axios instance (consider moving to api-client if not already done)
 const axiosInstance = axios.create({
@@ -59,7 +57,6 @@ interface FormValues {
     description: string;
   };
   room: Room; // Assuming Room type includes room_id
-  files: File[];
   is_defective: boolean;
 }
 
@@ -79,14 +76,6 @@ const validationSchema = Yup.object().shape({
     name: Yup.string().optional(),
     room_type: Yup.string().optional(),
   }).defined().required('Room selection is required'), // Ensure the object itself is required
-  files: Yup.array()
-    .min(1, 'At least one image is required')
-    .test('fileSize', 'One or more files are larger than 5MB', (files) =>
-      files ? files.every((file) => file.size <= MAX_FILE_SIZE) : true
-    )
-    .test('fileType', 'Only image files are allowed', (files) =>
-      files ? files.every((file) => file.type.startsWith('image/')) : true
-    ),
   is_defective: Yup.boolean().default(false),
 });
 
@@ -108,7 +97,6 @@ const initialValues: FormValues = {
     created_at: new Date().toISOString(),
     properties: []
   },
-  files: [],
   is_defective: false,
 };
 
@@ -146,9 +134,6 @@ const CreateJobButton: React.FC<CreateJobButtonProps> = ({ propertyId, onJobCrea
   const fetchData = async (currentPropertyId: string) => {
     // Clear previous errors/data
     setError(null);
-    // Don't reset rooms/topics here if you want them to persist briefly while loading
-    // setRooms([]);
-    // setTopics([]);
 
     try {
       // Use Next.js API routes which proxy to Django and handle auth via session
@@ -217,11 +202,6 @@ const CreateJobButton: React.FC<CreateJobButtonProps> = ({ propertyId, onJobCrea
           // Convert ALL values to strings for FormData
           const valueToAppend = value === null || value === undefined ? '' : String(value);
           formData.append(key, valueToAppend);
-      });
-
-      // Append files
-      values.files.forEach((file) => {
-        formData.append('images', file); // Use 'images' to match Django backend expectation often
       });
 
       // Make the API call using multipart/form-data
@@ -396,24 +376,6 @@ const CreateJobButton: React.FC<CreateJobButtonProps> = ({ propertyId, onJobCrea
                              <p className="text-sm text-red-500 mt-1">{errors.topic.title}</p>
                          )}
                      </div>
-
-                     <div>
-                        <Label>Images (Max 5MB each)</Label>
-                         <FileUpload
-                            onFileSelect={(selectedFiles) => setFieldValue('files', selectedFiles)}
-                            // Pass formik errors/touched status to FileUpload if it supports displaying them
-                             error={(touched.files && errors.files) ? (errors.files as string) : undefined}
-                            touched={!!touched.files} 
-                            maxFiles={5}
-                            maxSize={MAX_FILE_SIZE / (1024*1024)} // Pass maxSize in MB
-                            
-                        />
-                         {/* Display file-related errors specifically */}
-                         {touched.files && errors.files && typeof errors.files === 'string' && (
-                            <p className="text-sm text-red-500 mt-1">{errors.files}</p>
-                         )}
-                     </div>
-
 
                      <div className="items-top flex space-x-2 mt-2">
                          <Checkbox

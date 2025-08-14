@@ -12,6 +12,21 @@ Font.register({
   ],
 });
 
+// Only allow safe image URLs (avoid mixed-content/CORS crashes in @react-pdf/renderer)
+function getSafeImageUrl(url?: string): string | undefined {
+  if (!url) return undefined;
+  try {
+    // Allow https absolute URLs
+    const parsed = new URL(url);
+    if (parsed.protocol === 'https:') return url;
+    return undefined;
+  } catch {
+    // Allow same-origin relative URLs
+    if (url.startsWith('/')) return url;
+    return undefined;
+  }
+}
+
 interface JobsPDFDocumentProps {
   jobs: Job[];
   filter: TabValue;
@@ -135,21 +150,6 @@ function doesJobBelongToProperty(job: Job, selectedProperty: string): boolean {
   return false;
 }
 
-// Only allow safe image URLs (avoid mixed-content/CORS crashes in @react-pdf/renderer)
-function getSafeImageUrl(url?: string): string | undefined {
-  if (!url) return undefined;
-  try {
-    // Allow https absolute URLs
-    const parsed = new URL(url);
-    if (parsed.protocol === 'https:') return url;
-    return undefined;
-  } catch {
-    // Allow same-origin relative URLs
-    if (url.startsWith('/')) return url;
-    return undefined;
-  }
-}
-
 const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({ jobs, filter, selectedProperty, propertyName }) => {
   const filteredJobs = jobs.filter((job) => {
     if (!selectedProperty) return true;
@@ -227,11 +227,15 @@ const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({ jobs, filter, selecte
             return (
               <View key={job.job_id} style={styles.jobRow} wrap={false}>
                 <View style={styles.imageColumn}>
-                  {imageUrl && (
+                  {imageUrl ? (
                     <Image
                       src={imageUrl}
                       style={styles.jobImage}
                     />
+                  ) : (
+                    <View style={[styles.jobImage, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f3f4f6' }]}>
+                      <Text style={{ fontSize: 8, color: '#6b7280' }}>No image</Text>
+                    </View>
                   )}
                 </View>
 

@@ -15,6 +15,7 @@ import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useProperty } from "@/app/lib/PropertyContext";
+import { MissingImage } from "@/app/components/jobs/MissingImage";
 
 interface JobCardProps {
   job: Job;
@@ -25,11 +26,27 @@ export function JobCard({ job, properties = [] }: JobCardProps) {
   const router = useRouter();
   const { selectedProperty } = useProperty();
   const [selectedImage, setSelectedImage] = useState<number>(0);
+  const [failedImageIndexes, setFailedImageIndexes] = useState<Set<number>>(new Set());
   const [expandedSections, setExpandedSections] = useState({
     details: false,
     timestamps: false,
     remarks: false,
   });
+
+  const imageUrls = useMemo(() => {
+    const urls: string[] = [];
+    if (Array.isArray(job.images)) {
+      for (const img of job.images) {
+        if (img?.image_url) urls.push(img.image_url);
+      }
+    }
+    if (Array.isArray(job.image_urls)) {
+      for (const url of job.image_urls) {
+        if (url && !urls.includes(url)) urls.push(url);
+      }
+    }
+    return urls;
+  }, [job.images, job.image_urls]);
 
   const toggleSection = useCallback((section: keyof typeof expandedSections, e: MouseEvent) => {
     e.stopPropagation();
@@ -110,8 +127,22 @@ export function JobCard({ job, properties = [] }: JobCardProps) {
 
   const statusConfig = useMemo(() => getStatusConfig(job.status), [job.status]);
 
+  const handleImageError = useCallback((index: number) => {
+    setFailedImageIndexes(prev => {
+      const next = new Set(prev);
+      next.add(index);
+      setSelectedImage(prevSelected => {
+        if (prevSelected !== index) return prevSelected;
+        const nextIndex = imageUrls.findIndex((_, i) => i !== index && !next.has(i));
+        return nextIndex !== -1 ? nextIndex : prevSelected;
+      });
+      return next;
+    });
+  }, [imageUrls]);
+
   const handleThumbnailClick = (index: number, e: MouseEvent) => {
     e.stopPropagation();
+    if (!imageUrls[index] || failedImageIndexes.has(index)) return;
     setSelectedImage(index);
   };
 
@@ -152,38 +183,48 @@ export function JobCard({ job, properties = [] }: JobCardProps) {
       </CardHeader>
 
       <CardContent className="flex-grow p-4 space-y-4" onClick={(e) => e.stopPropagation()}>
-        {job.images && job.images.length > 0 && (
-          <div className="space-y-2">
-            <div className="relative w-full aspect-video overflow-hidden rounded-md bg-gray-100">
+        <div className="space-y-2">
+          <div className="relative w-full aspect-video overflow-hidden rounded-md bg-gray-100">
+            {imageUrls.length > 0 && imageUrls[selectedImage] && !failedImageIndexes.has(selectedImage) ? (
               <LazyImage
-                src={job.images[selectedImage]?.image_url}
+                src={imageUrls[selectedImage]}
                 alt={`Job Image ${selectedImage + 1}`}
                 className="w-full h-full object-cover rounded-md"
+                onError={() => handleImageError(selectedImage)}
               />
-            </div>
-            {job.images.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent">
-                {job.images.map((img, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={(e) => handleThumbnailClick(index, e)}
-                    className={cn(
-                      "w-14 h-14 flex-shrink-0 rounded-md overflow-hidden border transition-all",
-                      selectedImage === index ? "border-blue-500 ring-2 ring-blue-100" : "border-gray-200 hover:border-gray-300"
-                    )}
-                  >
-                    <LazyImage
-                      src={img.image_url}
-                      alt={`Thumbnail ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                ))}
-              </div>
+            ) : (
+              <MissingImage className="w-full h-full" />
             )}
           </div>
-        )}
+          {imageUrls.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent">
+              {imageUrls.map((url, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  onClick={(e) => handleThumbnailClick(index, e)}
+                  className={cn(
+                    "w-14 h-14 flex-shrink-0 rounded-md overflow-hidden border transition-all",
+                    selectedImage === index ? "border-blue-500 ring-2 ring-blue-100" : "border-gray-200 hover:border-gray-300",
+                    (!url || failedImageIndexes.has(index)) && "opacity-60 cursor-not-allowed"
+                  )}
+                  disabled={!url || failedImageIndexes.has(index)}
+                >
+                  {(!url || failedImageIndexes.has(index)) ? (
+                    <MissingImage className="w-full h-full" iconClassName="w-5 h-5" />
+                  ) : (
+                    <LazyImage
+                      src={url}
+                      alt={`Thumbnail ${index + 1}`}
+                      className="w-full h-full object-cover"
+                      onError={() => handleImageError(index)}
+                    />
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         <div className="flex items-start gap-2 bg-gray-50 p-3 rounded-lg">
           <MessageSquare className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />

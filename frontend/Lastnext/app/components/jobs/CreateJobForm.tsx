@@ -195,7 +195,7 @@ const CreateJobForm: React.FC<{ onJobCreated?: () => void }> = ({ onJobCreated }
         formData.append('images', file);
       });
 
-      const response = await axios.post(`${API_BASE_URL}/api/jobs/`, formData, {
+      const response = await axios.post(`${API_BASE_URL}/api/v1/jobs/`, formData, {
         headers: {
           Authorization: `Bearer ${session.user.accessToken}`,
         },

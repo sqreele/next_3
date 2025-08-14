@@ -96,7 +96,7 @@ function DesktopNav({ collapsed, toggleCollapse }: {
           <Package2 className="h-6 w-6 text-blue-600 group-hover:text-blue-700 transition-colors" />
           {!collapsed && (
             <span className="font-semibold text-lg text-gray-800 group-hover:text-blue-700 transition-colors">
-              PMCS
+              PCMS.live
             </span>
           )}
         </Link>
@@ -183,7 +183,7 @@ function MobileHeader() {
           <MobileNav />
           <Link href="/dashboard" className="flex items-center gap-2">
             <Package2 className="h-6 w-6 text-blue-600" />
-            <span className="font-semibold text-gray-800">PMCS</span>
+            <span className="font-semibold text-gray-800">PCMS.live</span>
           </Link>
         </div>
         <div className="flex items-center gap-3">
@@ -261,7 +261,7 @@ function MobileNav() {
         <div className="p-4 border-b border-gray-200">
           <Link href="/dashboard" className="flex items-center gap-2" onClick={() => setOpen(false)}>
             <Package2 className="h-5 w-5 text-blue-600" />
-            <span className="font-semibold text-gray-800">PMCS Admin</span>
+            <span className="font-semibold text-gray-800">PCMS.live Admin</span>
           </Link>
         </div>
         
@@ -434,13 +434,13 @@ function DashboardBreadcrumb() {
             Dashboard
           </BreadcrumbLink>
         </BreadcrumbItem>
-        {paths.map((path, index) => {
-          const href = `/${paths.slice(0, index + 1).join('/')}`;
-          const isLast = index === paths.length - 1;
+        {paths.slice(1).map((path, index) => {
+          const href = `/${paths.slice(0, index + 2).join('/')}`;
+          const isLast = index === paths.slice(1).length - 1;
           const label = path.charAt(0).toUpperCase() + path.slice(1);
 
           return (
-            <React.Fragment key={path}>
+            <React.Fragment key={href}>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 {isLast ? (
@@ -473,13 +473,13 @@ function MobileBreadcrumb() {
       <Link href="/dashboard" className="text-gray-500">
         Dashboard
       </Link>
-      {paths.map((path, index) => {
-        const href = `/${paths.slice(0, index + 1).join('/')}`;
-        const isLast = index === paths.length - 1;
+      {paths.slice(1).map((path, index) => {
+        const href = `/${paths.slice(0, index + 2).join('/')}`;
+        const isLast = index === paths.slice(1).length - 1;
         const label = path.charAt(0).toUpperCase() + path.slice(1);
 
         return (
-          <React.Fragment key={path}>
+          <React.Fragment key={href}>
             <span className="mx-1.5 text-gray-400">/</span>
             {isLast ? (
               <span className="font-medium text-gray-800">

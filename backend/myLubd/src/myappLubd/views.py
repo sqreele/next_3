@@ -937,7 +937,7 @@ def forgot_password(request):
                 f"You requested to reset your password. Click the link below to set a new password.\n\n"
                 f"{reset_link}\n\n"
                 f"This link will expire in 1 hour. If you did not request this, you can ignore this email.\n\n"
-                f"Thanks,\nPMCS Team"
+                f"Thanks,\nPCMS.live Team"
             )
             try:
                 from .email_utils import send_email as send_via_gmail

@@ -9,6 +9,11 @@ const globalForPrisma = global as unknown as {
 
 // Main Prisma client for your Django-generated schema
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL || 'postgresql://user:pass@localhost:5432/db?schema=public',
+    },
+  },
   log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
 });
 
@@ -16,7 +21,7 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient({
 export const authPrisma = globalForPrisma.authPrisma ?? new PrismaClient({
   datasources: {
     db: {
-      url: process.env.DATABASE_URL,
+      url: process.env.DATABASE_URL || 'postgresql://user:pass@localhost:5432/db?schema=public',
     },
   },
   log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],

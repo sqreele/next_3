@@ -874,7 +874,7 @@ def auth_providers(request):
         },
         "local": {
             "name": "Local",
-            "endpoint": "/api/auth/login/",
+            "endpoint": "/api/v1/auth/login/",
             "description": "Sign in with username and password",
         },
     }

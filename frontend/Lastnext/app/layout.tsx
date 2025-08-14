@@ -37,20 +37,20 @@ export const metadata: Metadata = {
   authors: [
     {
       name: 'Your Name', // Replace with your actual name
-      url: 'https://pmcs.site',
+      url: 'https://pcms.live',
     },
   ],
   creator: 'Your Name', // Replace with your actual name
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://pmcs.site',
+    url: 'https://pcms.live',
     title: 'Maintenance & Job Management Dashboard',
     description: 'Efficiently manage maintenance tasks and jobs with our modern admin dashboard built with Next.js, Postgres, NextAuth, and Tailwind CSS. Perfect for property managers and facility teams.',
     siteName: 'Maintenance & Job Management Dashboard',
     images: [
       {
-        url: 'https://pmcs.site/og-image.jpg', // Replace with actual image URL
+        url: 'https://pcms.live/og-image.jpg', // Replace with actual image URL
         width: 1200,
         height: 630,
         alt: 'Maintenance & Job Management Dashboard Preview',
@@ -62,7 +62,7 @@ export const metadata: Metadata = {
     title: 'Maintenance & Job Management Dashboard',
     description: 'A powerful tool for property maintenance and job management, built with Next.js, TypeScript, and Tailwind CSS. Track and manage tasks seamlessly.',
     creator: '@yourtwitter', // Replace with your Twitter handle
-    images: ['https://pmcs.site/twitter-image.jpg'], // Replace with actual image URL
+    images: ['https://pcms.live/twitter-image.jpg'], // Replace with actual image URL
   },
   robots: {
     index: true,

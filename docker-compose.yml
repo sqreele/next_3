@@ -5,10 +5,10 @@ services:
       context: ./frontend/Lastnext
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://pmcs.site}
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://pcms.live}
         - NEXT_PRIVATE_API_URL=${NEXT_PRIVATE_API_URL:-http://django-backend:8000}
         - API_URL=${API_URL:-http://django-backend:8000}
-        - NEXTAUTH_URL=${NEXTAUTH_URL:-https://pmcs.site}
+        - NEXTAUTH_URL=${NEXTAUTH_URL:-https://pcms.live}
         - NEXTAUTH_SECRET=K/QdN0nOS9Sep9RDp8YCEsxDhGTmRWVW/7wR/0C8kuA=
         - JWT_SECRET=uhZ6biZK5PkeLMeJqoVVCgfWGLRwLPkLHi9vwKPMBCU=
         - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
@@ -16,10 +16,10 @@ services:
     container_name: nextjs-frontend
     restart: unless-stopped
     environment:
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://pmcs.site}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://pcms.live}
       - NEXT_PRIVATE_API_URL=${NEXT_PRIVATE_API_URL:-http://django-backend:8000}
       - API_URL=${API_URL:-http://django-backend:8000}
-      - NEXTAUTH_URL=${NEXTAUTH_URL:-https://pmcs.site}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-https://pcms.live}
       - NEXTAUTH_SECRET=K/QdN0nOS9Sep9RDp8YCEsxDhGTmRWVW/7wR/0C8kuA=
       - JWT_SECRET=uhZ6biZK5PkeLMeJqoVVCgfWGLRwLPkLHi9vwKPMBCU=
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
@@ -57,11 +57,11 @@ services:
       - PYTHONPATH=/app  
       - NEXTAUTH_SECRET=K/QdN0nOS9Sep9RDp8YCEsxDhGTmRWVW/7wR/0C8kuA=
       - JWT_SECRET=uhZ6biZK5PkeLMeJqoVVCgfWGLRwLPkLHi9vwKPMBCU=
-      - NEXTAUTH_URL=${NEXTAUTH_URL:-https://pmcs.site}
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://pmcs.site}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-https://pcms.live}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://pcms.live}
       - DEBUG=0
-      - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1] pmcs.site www.pmcs.site django-backend
-      - DJANGO_CORS_ORIGINS=https://pmcs.site
+      - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1] pcms.live www.pcms.live django-backend
+      - DJANGO_CORS_ORIGINS=https://pcms.live
       - SQL_ENGINE=django.db.backends.postgresql
       - SQL_DATABASE=${POSTGRES_DB:-mylubd_db}
       - SQL_USER=${POSTGRES_USER:-mylubd_user}
@@ -139,10 +139,10 @@ services:
       - ./nginx/letsencrypt:/etc/letsencrypt
       - ./nginx/certbot:/var/www/certbot
     environment:
-      - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL:-admin@pmcs.site}
+      - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL:-admin@pcms.live}
     depends_on:
       - nginx
-    command: sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --agree-tos --keep-until-expiring -m ${LETSENCRYPT_EMAIL:-admin@pmcs.site} && echo 'Renew checked'; sleep 12h & wait $$!; done"
+    command: sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --agree-tos --keep-until-expiring -m ${LETSENCRYPT_EMAIL:-admin@pcms.live} && echo 'Renew checked'; sleep 12h & wait $$!; done"
     networks:
       - app-network
 

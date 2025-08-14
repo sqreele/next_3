@@ -17,7 +17,7 @@ import { Label } from "@/app/components/ui/label";
 import { Circle, Loader2 } from 'lucide-react';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
-  (process.env.NODE_ENV === 'development' ? 'http://localhost:8000' : 'https://pmcs.site');
+  (process.env.NODE_ENV === 'development' ? 'http://localhost:8000' : 'https://pcms.live');
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 

@@ -32,8 +32,8 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     
     '[::1]',
-    'pmcs.site',
-    'www.pmcs.site',
+    'pcms.live',
+    'www.pcms.live',
     'django-backend',
     
      'backend',
@@ -211,11 +211,11 @@ EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
 EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False') == 'True'
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'no-reply@pmcs.site')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'no-reply@pcms.live')
 SERVER_EMAIL = os.getenv('SERVER_EMAIL', DEFAULT_FROM_EMAIL)
 
 # Base URL for links in emails (frontend site)
-FRONTEND_BASE_URL = os.getenv('FRONTEND_BASE_URL', 'https://pmcs.site')
+FRONTEND_BASE_URL = os.getenv('FRONTEND_BASE_URL', 'https://pcms.live')
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'
@@ -232,15 +232,15 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024  # 5MB
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
-     "https://pmcs.site",
-    "https://www.pmcs.site",
+     "https://pcms.live",
+    "https://www.pcms.live",
    "http://nextjs-frontend:3000",
     
 ]
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
-      "https://pmcs.site",
-    "https://www.pmcs.site",
+      "https://pcms.live",
+    "https://www.pcms.live",
     "http://nextjs-frontend:3000",
      
 ]

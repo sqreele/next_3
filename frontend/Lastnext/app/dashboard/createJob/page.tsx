@@ -15,11 +15,11 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Create Job - Maintenance & Job Management Dashboard',
     description: 'Add new maintenance tasks with ease using our Next.js-powered form.',
-    url: 'https://pmcs.site/dashboard/createJob',
+    url: 'https://pcms.live/dashboard/createJob',
     type: 'website',
     images: [
       {
-        url: 'https://pmcs.site/og-create-job.jpg',
+        url: 'https://pcms.live/og-create-job.jpg',
         width: 1200,
         height: 630,
         alt: 'Create Job Page Preview',
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Create Job - Maintenance & Job Management Dashboard',
     description: 'Effortlessly create maintenance jobs with our intuitive tool.',
-    images: ['https://pmcs.site/twitter-create-job.jpg'],
+    images: ['https://pcms.live/twitter-create-job.jpg'],
   },
 };
 

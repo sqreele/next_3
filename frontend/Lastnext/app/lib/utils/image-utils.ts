@@ -11,7 +11,7 @@ export function fixImageUrl(imageUrl: string | null | undefined): string | null 
   }
   
   // If it's already an external URL, return as is
-  if (imageUrl.startsWith('http://django-backend:8000') || imageUrl.startsWith('https://pmcs.site')) {
+  if (imageUrl.startsWith('http://django-backend:8000') || imageUrl.startsWith('https://pcms.live')) {
     return imageUrl.replace('http://django-backend:8000', MEDIA_CONFIG.baseUrl);
   }
   

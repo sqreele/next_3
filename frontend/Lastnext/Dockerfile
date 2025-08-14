@@ -67,10 +67,10 @@ ENV NEXT_TELEMETRY_DISABLED=1 \
     SKIP_ENV_VALIDATION=true
 
 # Build arguments for flexible configuration
-ARG NEXT_PUBLIC_API_URL=https://pmcs.site
+ARG NEXT_PUBLIC_API_URL=https://pcms.live
 ARG NEXT_PRIVATE_API_URL=http://django-backend:8000
 ARG API_URL=http://django-backend:8000
-ARG NEXTAUTH_URL=https://pmcs.site
+ARG NEXTAUTH_URL=https://pcms.live
 ARG NEXTAUTH_SECRET
 ARG JWT_SECRET
 ARG GOOGLE_CLIENT_ID

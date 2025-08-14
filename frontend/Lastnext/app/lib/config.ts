@@ -10,7 +10,7 @@ export const API_CONFIG = {
     }
     // Client-side: use public URL
     return process.env.NEXT_PUBLIC_API_URL || 
-      (process.env.NODE_ENV === "development" ? "http://localhost:8000" : "https://pmcs.site");
+      (process.env.NODE_ENV === "development" ? "http://localhost:8000" : "https://pcms.live");
   })(),
   
   // ✅ Add all missing endpoints
@@ -32,7 +32,7 @@ export const API_CONFIG = {
 // Media URLs should use the external domain for browser access
 export const MEDIA_CONFIG = {
   baseUrl: process.env.NEXT_PUBLIC_MEDIA_URL || 
-    (process.env.NODE_ENV === "development" ? "http://localhost:8000" : "https://pmcs.site"),
+    (process.env.NODE_ENV === "development" ? "http://localhost:8000" : "https://pcms.live"),
 };
 
 export const AUTH_CONFIG = {

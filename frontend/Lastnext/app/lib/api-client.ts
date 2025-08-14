@@ -85,7 +85,7 @@ async function refreshToken(refreshTokenValue: string): Promise<string | null> {
     console.log("[Auth] Attempting to refresh access token...");
     // Use standard fetch or a separate axios instance to avoid interceptor loops
     const djangoBaseURL = process.env.NEXT_PUBLIC_API_URL ||
-      (process.env.NODE_ENV === "development" ? "http://localhost:8000" : "https://pmcs.site");
+      (process.env.NODE_ENV === "development" ? "http://localhost:8000" : "https://pcms.live");
     const response = await fetch(`${djangoBaseURL}/api/v1/token/refresh/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

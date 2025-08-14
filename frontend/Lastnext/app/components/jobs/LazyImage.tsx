@@ -10,7 +10,7 @@ interface LazyImageProps {
 
 export const LazyImage: React.FC<LazyImageProps> = ({ src, alt, className }) => {
   // Check if this is a URL from our own domain
-  const isOwnDomain = src.includes('pmcs.site');
+  const isOwnDomain = src.includes('pcms.live');
   
   return (
     <Image

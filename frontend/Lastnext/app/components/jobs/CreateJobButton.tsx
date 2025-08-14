@@ -225,7 +225,7 @@ const CreateJobButton: React.FC<CreateJobButtonProps> = ({ propertyId, onJobCrea
       });
 
       // Make the API call using multipart/form-data
-      const response = await axiosInstance.post('/api/jobs/', formData, {
+      const response = await axiosInstance.post('/api/v1/jobs/', formData, {
         headers: {
           // Content-Type is set automatically by browser for FormData
           'Content-Type': undefined, // Let browser set boundary

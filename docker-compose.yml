@@ -142,8 +142,8 @@ services:
       - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL:-admin@pcms.live}
     depends_on:
       - nginx
-    entrypoint: ["/bin/sh", "-c"]
-    command: "trap exit TERM; while :; do certbot renew -q && echo 'Renew checked'; sleep 12h & wait $$!; done"
+    entrypoint: "/bin/sh"
+    command: -c 'echo "0 0,12 * * * certbot renew --quiet" | crontab - && crond -f'
     networks:
       - app-network
 

@@ -10,10 +10,14 @@ ENV PYTHONPATH=/app
 
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies (include image libs for Pillow WebP/JPEG)
 RUN apt-get update && apt-get install -y \
     postgresql-client \
     netcat-traditional \
+    libjpeg62-turbo-dev \
+    zlib1g-dev \
+    libwebp-dev \
+    libpng-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies

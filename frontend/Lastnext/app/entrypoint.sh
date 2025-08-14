@@ -165,10 +165,10 @@ main() {
         exec node server.js
     elif [ -f "./node_modules/.bin/next" ]; then
         echo "🚀 Starting with Next.js CLI..."
-        exec ./node_modules/.bin/next start
+        exec ./node_modules/.bin/next start -H 0.0.0.0 -p "${PORT:-3000}"
     else
         echo "🚀 Starting with npm..."
-        exec npm start
+        exec npm run start -- -H 0.0.0.0 -p "${PORT:-3000}"
     fi
 }
 

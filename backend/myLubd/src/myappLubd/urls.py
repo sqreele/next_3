@@ -41,7 +41,7 @@ urlpatterns = [
     path('api/auth/password/reset/', views.reset_password, name='reset_password'),
     
     # Health check
-    path('api/v1/health/', views.health_check, name='health_check'),
+    path('api/health/', views.health_check, name='health_check'),
     
     # Preventive maintenance endpoints
     path('api/v1/preventive-maintenance/<str:pm_id>/upload-images/', PreventiveMaintenanceImageUploadView.as_view(), name='upload_pm_images'),

@@ -77,6 +77,12 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({
   const [imageDataUrls, setImageDataUrls] = useState<{[key: string]: string}>({});
   const printRef = useRef(null);
 
+  // Advanced image/PDF options
+  const [imgQuality, setImgQuality] = useState(0.92); // 0-1
+  const [canvasScale, setCanvasScale] = useState(2); // 1-3 typical
+  const [imageFormat, setImageFormat] = useState<'PNG' | 'JPEG'>('PNG');
+  const [marginMm, setMarginMm] = useState(10);
+
   // Helper functions
   const getTaskStatus = (item: PreventiveMaintenance) => {
     return determinePMStatus(item);
@@ -332,63 +338,37 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({
     const element = document.getElementById('pdf-content');
     if (!element) {
       console.error('PDF content element not found');
+      alert('PDF content not found on the page.');
       return;
     }
 
     try {
       setIsGeneratingPDF(true);
-      console.log('Starting PDF generation...');
-
       // Wait for images to load if they're included
       if (includeImages) {
-        console.log('Waiting for images to load...');
         const images = element.querySelectorAll('img');
-        
         await Promise.all(Array.from(images).map((img) => {
           return new Promise((resolve) => {
             if (img.complete && img.naturalHeight !== 0) {
-              console.log('Image already loaded:', img.src.substring(0, 50) + '...');
               resolve(img);
             } else {
-              console.log('Waiting for image to load:', img.src.substring(0, 50) + '...');
-              
-              const onLoad = () => {
-                console.log('Image loaded successfully');
-                resolve(img);
-              };
-              
-              const onError = () => {
-                console.warn('Image failed to load');
-                resolve(img);
-              };
-              
-              img.addEventListener('load', onLoad);
-              img.addEventListener('error', onError);
-              
-              // Timeout after 10 seconds
-              setTimeout(() => {
-                console.warn('Image load timeout');
-                resolve(img);
-              }, 10000);
+              const onLoad = () => resolve(img);
+              const onError = () => resolve(img);
+              img.addEventListener('load', onLoad, { once: true });
+              img.addEventListener('error', onError, { once: true });
+              setTimeout(() => resolve(img), 10000);
             }
           });
         }));
-        
-        // Additional wait for rendering
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 300));
       }
 
-      console.log('Capturing content with html2canvas...');
-      
-      // Get the actual content dimensions
+      // Capture with html2canvas
       const elementWidth = element.scrollWidth;
       const elementHeight = element.scrollHeight;
-      
-      console.log('Element dimensions:', elementWidth, 'x', elementHeight);
 
-      // Capture with html2canvas
       const canvas = await html2canvas(element, {
-        scale: 2, // High resolution
+        scale: Math.max(1, Math.min(canvasScale, 3)),
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
@@ -404,55 +384,46 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({
         foreignObjectRendering: false,
       });
 
-      console.log('Canvas created, dimensions:', canvas.width, 'x', canvas.height);
-
-      // Create PDF with proper centering
-      const imgData = canvas.toDataURL('image/png', 1.0);
+      const dataUrlType = imageFormat === 'PNG' ? 'image/png' : 'image/jpeg';
+      const imgData = canvas.toDataURL(dataUrlType, Math.max(0.5, Math.min(imgQuality, 1)));
       const pdf = new jsPDF('p', 'mm', 'a4');
-      
+
       // A4 dimensions in mm
       const pdfWidth = 210;
       const pdfHeight = 297;
-      const margin = 10; // 10mm margin on all sides
+      const margin = Math.max(0, Math.min(marginMm, 20));
       const contentWidth = pdfWidth - (margin * 2);
       const contentHeight = pdfHeight - (margin * 2);
-      
-      // Calculate scaling to fit content within margins
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      
+
+      // Pixels to mm conversion
+      const pxToMm = (px: number) => px * 0.264583;
+      const imgWidthMm = pxToMm(canvas.width);
+      const imgHeightMm = pxToMm(canvas.height);
+
       // Scale to fit width while maintaining aspect ratio
-      const scale = contentWidth / (imgWidth * 0.264583); // Convert pixels to mm
+      const scale = contentWidth / imgWidthMm;
       const scaledWidth = contentWidth;
-      const scaledHeight = (imgHeight * 0.264583) * scale;
-      
-      console.log('PDF scaling:', scale, 'Scaled dimensions:', scaledWidth, 'x', scaledHeight);
-      
-      let position = margin; // Start with top margin
+      const scaledHeight = imgHeightMm * scale;
+
+      let position = margin;
       let remainingHeight = scaledHeight;
 
-      // Add first page with centered content
-      pdf.addImage(imgData, 'PNG', margin, position, scaledWidth, scaledHeight);
+      pdf.addImage(imgData, imageFormat, margin, position, scaledWidth, scaledHeight);
       remainingHeight -= contentHeight;
 
-      // Add additional pages if content is longer than one page
       while (remainingHeight > 0) {
         position = -(scaledHeight - remainingHeight) + margin;
         pdf.addPage();
-        pdf.addImage(imgData, 'PNG', margin, position, scaledWidth, scaledHeight);
+        pdf.addImage(imgData, imageFormat, margin, position, scaledWidth, scaledHeight);
         remainingHeight -= contentHeight;
       }
 
-      // Save the PDF
       const fileName = `preventive-maintenance-report-${new Date().toISOString().split('T')[0]}.pdf`;
-      console.log('Saving PDF:', fileName);
       pdf.save(fileName);
-
-      console.log('PDF generation completed successfully');
-
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating PDF:', error);
-      alert('Failed to generate PDF. Please try again.');
+      const message = typeof error?.message === 'string' ? error.message : 'Unknown error while generating the PDF.';
+      alert(`Failed to generate PDF. ${message}`);
     } finally {
       setIsGeneratingPDF(false);
     }
@@ -630,6 +601,57 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({
           </div>
         </div>
 
+        {/* Image/PDF Options */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Image Format</label>
+            <select
+              value={imageFormat}
+              onChange={(e) => setImageFormat(e.target.value as 'PNG' | 'JPEG')}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="PNG">PNG (sharp, larger)</option>
+              <option value="JPEG">JPEG (smaller)</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Image Quality</label>
+            <input
+              type="range"
+              min={0.5}
+              max={1}
+              step={0.02}
+              value={imgQuality}
+              onChange={(e) => setImgQuality(parseFloat(e.target.value))}
+              className="w-full"
+            />
+            <div className="text-xs text-gray-500 mt-1">{Math.round(imgQuality * 100)}%</div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Canvas Scale</label>
+            <input
+              type="range"
+              min={1}
+              max={3}
+              step={0.5}
+              value={canvasScale}
+              onChange={(e) => setCanvasScale(parseFloat(e.target.value))}
+              className="w-full"
+            />
+            <div className="text-xs text-gray-500 mt-1">{canvasScale.toFixed(1)}x</div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">PDF Margin (mm)</label>
+            <input
+              type="number"
+              min={0}
+              max={20}
+              value={marginMm}
+              onChange={(e) => setMarginMm(parseInt(e.target.value || '0', 10))}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
         {/* Show applied filters */}
         {initialFilters && (
           <div className="mb-6 p-4 bg-blue-50 rounded-lg">

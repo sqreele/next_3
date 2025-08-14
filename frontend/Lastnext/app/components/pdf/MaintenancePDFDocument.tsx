@@ -8,6 +8,7 @@ import {
   View,
   StyleSheet,
   Image,
+  Font,
 } from '@react-pdf/renderer';
 import { 
   PreventiveMaintenance, 
@@ -17,6 +18,15 @@ import {
   getMachinesString,    // ✅ Import from models
   getLocationString     // ✅ Import from models
 } from '@/app/lib/preventiveMaintenanceModels';
+
+// Register fallback font (Sarabun) for broader glyph coverage
+Font.register({
+  family: 'Sarabun',
+  fonts: [
+    { src: '/fonts/Sarabun-Regular.ttf', fontWeight: 'normal' },
+    { src: '/fonts/Sarabun-Bold.ttf', fontWeight: 'bold' },
+  ],
+});
 
 // ✅ Fixed interface for images
 interface MaintenanceImage {
@@ -46,7 +56,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     padding: 40,
     fontSize: 10,
-    fontFamily: 'Helvetica',
+    fontFamily: 'Sarabun',
     width: '595pt',  // A4 width
     height: '842pt', // A4 height
     margin: 0
@@ -574,21 +584,35 @@ const hasImages = (item: PreventiveMaintenanceWithImages): boolean => {
   return getBeforeImages(item).length > 0 || getAfterImages(item).length > 0;
 };
 
+// Only allow safe image URLs to avoid mixed-content/CORS failures
+const getSafeImageUrl = (url?: string): string | undefined => {
+  if (!url) return undefined;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === 'https:') return url;
+    return undefined;
+  } catch {
+    if (url.startsWith('/')) return url;
+    return undefined;
+  }
+};
+
 // Add error boundary for image loading
 const SafeImage: React.FC<{ src: string; style?: any }> = ({ src, style }) => {
   const [error, setError] = useState(false);
-  
-  if (error) {
+  const safeSrc = getSafeImageUrl(src);
+
+  if (error || !safeSrc) {
     return (
       <View style={[style, { backgroundColor: '#f3f4f6', justifyContent: 'center', alignItems: 'center' }]}>
-        <Text style={{ color: '#6b7280', fontSize: 8 }}>Image failed to load</Text>
+        <Text style={{ color: '#6b7280', fontSize: 8 }}>Image unavailable</Text>
       </View>
     );
   }
 
   return (
     <Image
-      src={src}
+      src={safeSrc}
       style={style}
       cache={false}
     />

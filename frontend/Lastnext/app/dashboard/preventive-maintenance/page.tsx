@@ -93,7 +93,6 @@ export default function PreventiveMaintenanceListPage() {
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
       const newParams = {
-        ...filterParams,
         status: currentFilters.status || '',
         frequency: currentFilters.frequency || '',
         search: currentFilters.search || '',
@@ -107,14 +106,11 @@ export default function PreventiveMaintenanceListPage() {
       console.log('Filter sync - currentFilters:', currentFilters);
       console.log('Filter sync - newParams:', newParams);
 
-      if (JSON.stringify(newParams) !== JSON.stringify(filterParams)) {
-        console.log('Updating filter params...');
-        setFilterParams(newParams);
-      }
+      setFilterParams(newParams);
     }, 300);
 
     return () => clearTimeout(debounceTimer);
-  }, [currentFilters, filterParams, setFilterParams]);
+  }, [currentFilters, setFilterParams]);
 
   // Sorted and filtered data
   const sortedItems = useMemo(() => {
@@ -171,11 +167,6 @@ export default function PreventiveMaintenanceListPage() {
     const filterKey = validKeys[key];
     if (filterKey) {
       updateFilter(filterKey, value);
-      
-      // Reset to first page when filtering
-      if (filterKey !== 'page' && filterKey !== 'pageSize') {
-        updateFilter('page', 1);
-      }
     }
   }, [updateFilter]);
 

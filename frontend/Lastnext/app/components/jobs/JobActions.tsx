@@ -19,6 +19,8 @@ import {
 } from "@/app/components/ui/dropdown-menu";
 import { SortOrder, Job, Property, TabValue, Room } from "@/app/lib/types";
 import { format } from "date-fns";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
+import { Calendar as CalendarComponent } from "@/app/components/ui/calendar";
 
 type DateFilter = "all" | "today" | "yesterday" | "thisWeek" | "thisMonth" | "custom";
 
@@ -58,6 +60,8 @@ export default function JobActions({
   const [roomSearch, setRoomSearch] = useState<string>("");
   const [isLoadingRooms, setIsLoadingRooms] = useState(false);
   const { selectedProperty, setSelectedProperty } = useProperty() as PropertyContextType;
+  const [isCustomDateOpen, setIsCustomDateOpen] = useState(false);
+  const [customRange, setCustomRange] = useState<{ from?: Date; to?: Date }>({});
 
   const getDateFilterLabel = (filter: DateFilter) => {
     switch (filter) {
@@ -123,14 +127,30 @@ export default function JobActions({
   const handleDateFilterChange = (filter: DateFilter) => {
     if (onDateFilter) {
       if (filter === "custom") {
-        const endDate = new Date();
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() - 7);
-        onDateFilter(filter, startDate, endDate);
+        setIsCustomDateOpen(true);
+        return;
       } else {
         onDateFilter(filter);
       }
     }
+  };
+
+  const handleApplyCustomRange = () => {
+    if (!onDateFilter) return;
+    if (customRange.from && customRange.to) {
+      onDateFilter("custom", customRange.from, customRange.to);
+      setIsCustomDateOpen(false);
+    }
+  };
+
+  const handleClearCustomRange = () => {
+    setCustomRange({});
+    onDateFilter?.("all");
+    setIsCustomDateOpen(false);
+  };
+
+  const handleCloseCustomRange = () => {
+    setIsCustomDateOpen(false);
   };
 
   const handleGeneratePDF = async () => {
@@ -435,6 +455,31 @@ export default function JobActions({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* Custom Date Range Dialog */}
+      <Dialog open={isCustomDateOpen} onOpenChange={setIsCustomDateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Select custom date range</DialogTitle>
+          </DialogHeader>
+          <div className="p-1">
+            <CalendarComponent
+              initialFocus
+              mode="range"
+              numberOfMonths={1}
+              selected={customRange}
+              onSelect={(range) => setCustomRange(range || {})}
+            />
+          </div>
+          <DialogFooter>
+            <div className="flex items-center justify-end gap-2 w-full">
+              <Button variant="ghost" onClick={handleClearCustomRange}>Clear</Button>
+              <Button variant="outline" onClick={handleCloseCustomRange}>Cancel</Button>
+              <Button onClick={handleApplyCustomRange} disabled={!customRange.from || !customRange.to}>Apply</Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -415,6 +415,16 @@ class PreventiveMaintenanceService {
       } else if ('pm_id' in responseData) {
         actualRecord = responseData;
         console.log('Found record directly in response:', actualRecord.pm_id);
+      } else if (
+        responseData &&
+        typeof responseData === 'object' &&
+        'results' in responseData &&
+        Array.isArray((responseData as any).results) &&
+        (responseData as any).results.length > 0 &&
+        'pm_id' in (responseData as any).results[0]
+      ) {
+        actualRecord = (responseData as any).results[0];
+        console.warn('Response was paginated; using first result:', actualRecord.pm_id);
       } else {
         console.error('Unexpected response format:', responseData);
         throw new Error('Invalid response format: Missing pm_id');

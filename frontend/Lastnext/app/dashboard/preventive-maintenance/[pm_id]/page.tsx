@@ -12,6 +12,7 @@ import {
 // Import NextAuth.js utilities for server-side session
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/lib/auth"
+import { API_CONFIG } from '@/app/lib/config';
 
 // Function to check if topics is a Topic[]
 function isTopicArray(topics: Topic[] | number[]): topics is Topic[] {
@@ -59,9 +60,7 @@ async function getPreventiveMaintenance(pmId: string): Promise<PreventiveMainten
     return null; // Or throw new Error("Authentication required");
   }
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ||
-                 (process.env.NODE_ENV === "development" ? "http://localhost:8000" : "https://pcms.live");
-  const targetUrl = `${apiUrl}/api/v1/preventive-maintenance/${pmId}/`;
+  const targetUrl = `${API_CONFIG.baseUrl}${API_CONFIG.endpoints.preventiveMaintenance}${pmId}/`;
   console.log(`[SERVER_FETCH] Fetching URL: ${targetUrl} with token.`);
 
   try {

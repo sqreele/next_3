@@ -19,14 +19,34 @@ import {
   getLocationString     // ✅ Import from models
 } from '@/app/lib/preventiveMaintenanceModels';
 
-// Register fallback font (Sarabun) for broader glyph coverage
-Font.register({
-  family: 'Sarabun',
-  fonts: [
-    { src: '/fonts/Sarabun-Regular.ttf', fontWeight: 'normal' },
-    { src: '/fonts/Sarabun-Bold.ttf', fontWeight: 'bold' },
-  ],
-});
+// Font registration helpers to resolve absolute public URLs in both dev and prod
+const getPublicAssetUrl = (path: string): string => {
+  try {
+    const basePath = (process as any).env?.NEXT_PUBLIC_BASE_PATH || (process as any).env?.NEXT_PUBLIC_ASSET_PREFIX || '';
+    if (typeof window !== 'undefined') {
+      const origin = window.location.origin || '';
+      return `${origin}${basePath}${path}`;
+    }
+    return `${basePath}${path}`;
+  } catch {
+    return path;
+  }
+};
+
+let pdfFontsRegistered = false;
+const ensurePdfFontsRegistered = () => {
+  if (pdfFontsRegistered) return;
+  const regular = getPublicAssetUrl('/fonts/Sarabun-Regular.ttf');
+  const bold = getPublicAssetUrl('/fonts/Sarabun-Bold.ttf');
+  Font.register({
+    family: 'Sarabun',
+    fonts: [
+      { src: regular, fontWeight: 'normal' },
+      { src: bold, fontWeight: 'bold' },
+    ],
+  });
+  pdfFontsRegistered = true;
+};
 
 // ✅ Fixed interface for images
 interface MaintenanceImage {
@@ -57,8 +77,6 @@ const styles = StyleSheet.create({
     padding: 40,
     fontSize: 10,
     fontFamily: 'Sarabun',
-    width: '595pt',  // A4 width
-    height: '842pt', // A4 height
     margin: 0
   },
   header: {
@@ -185,8 +203,10 @@ const styles = StyleSheet.create({
     color: '#6b7280'
   },
   statusBadge: {
-    paddingHorizontal: 6,  // Reduced from 8
-    paddingVertical: 2,  // Reduced from 3
+    paddingLeft: 6,
+    paddingRight: 6,
+    paddingTop: 2,
+    paddingBottom: 2,
     fontSize: 7,  // Reduced from 8
     fontWeight: 'bold',
     textAlign: 'center'
@@ -307,8 +327,7 @@ const styles = StyleSheet.create({
   imageContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 15,
-    gap: 10
+    marginBottom: 15
   },
   imageGroup: {
     width: '48%',
@@ -332,7 +351,6 @@ const styles = StyleSheet.create({
   maintenanceImage: {
     width: '100%',
     height: 180,
-    objectFit: 'contain',
     borderWidth: 1,
     borderColor: '#d1d5db',
     borderStyle: 'solid',
@@ -352,19 +370,16 @@ const styles = StyleSheet.create({
     textAlign: 'center'
   },
   multiImageContainer: {
-    flexDirection: 'column',
-    gap: 6
+    flexDirection: 'column'
   },
   imageRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 6,
-    gap: 4
+    marginBottom: 6
   },
   smallImage: {
     width: '48%',
     height: 120,
-    objectFit: 'contain',
     borderWidth: 1,
     borderColor: '#e5e7eb',
     borderStyle: 'solid',
@@ -375,11 +390,12 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     textAlign: 'center',
     fontStyle: 'italic',
-    paddingVertical: 30,
+    paddingTop: 30,
+    paddingBottom: 30,
     backgroundColor: '#f9fafb',
     borderWidth: 1,
     borderColor: '#e5e7eb',
-    borderStyle: 'dashed'
+    borderStyle: 'solid'
   },
   imageErrorText: {
     fontSize: 8,
@@ -398,7 +414,6 @@ const styles = StyleSheet.create({
   singleImage: {
     width: '80%',
     height: 200,
-    objectFit: 'contain',
     borderWidth: 1,
     borderColor: '#d1d5db',
     borderStyle: 'solid',
@@ -416,13 +431,11 @@ const styles = StyleSheet.create({
   imageGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 4
+    justifyContent: 'space-between'
   },
   gridImage: {
     width: '48%',
     height: 90,
-    objectFit: 'contain',
     borderWidth: 1,
     borderColor: '#e5e7eb',
     borderStyle: 'solid',
@@ -622,17 +635,17 @@ const SafeImage: React.FC<{ src: string; style?: any }> = ({ src, style }) => {
 // Update ImageDisplay component
 const ImageDisplay: React.FC<{ 
   image: MaintenanceImage; 
-  style?: any; 
+  imageStyle?: any; 
   showCaption?: boolean; 
   showTimestamp?: boolean; 
-}> = ({ image, style = styles.maintenanceImage, showCaption = true, showTimestamp = false }) => {
+}> = ({ image, imageStyle = styles.maintenanceImage, showCaption = true, showTimestamp = false }) => {
   if (!image?.url) {
     return null;
   }
 
   return (
-    <View style={[styles.imageContainer, style]}>
-      <SafeImage src={image.url} style={styles.maintenanceImage} />
+    <View style={styles.imageContainer}>
+      <SafeImage src={image.url} style={imageStyle} />
       {showCaption && image.caption && (
         <Text style={styles.imageCaption}>{image.caption}</Text>
       )}
@@ -670,15 +683,15 @@ const MultipleImagesDisplay: React.FC<{
       {/* Single image */}
       {images.length === 1 && (
         <View style={styles.singleImageContainer}>
-          <ImageDisplay image={images[0]} style={styles.singleImage} />
+          <ImageDisplay image={images[0]} imageStyle={styles.singleImage} />
         </View>
       )}
 
       {/* Two images */}
       {images.length === 2 && (
         <View style={styles.imageRow}>
-          <ImageDisplay image={images[0]} style={styles.smallImage} showCaption={false} />
-          <ImageDisplay image={images[1]} style={styles.smallImage} showCaption={false} />
+          <ImageDisplay image={images[0]} imageStyle={styles.smallImage} showCaption={false} />
+          <ImageDisplay image={images[1]} imageStyle={styles.smallImage} showCaption={false} />
         </View>
       )}
 
@@ -686,11 +699,11 @@ const MultipleImagesDisplay: React.FC<{
       {images.length === 3 && (
         <View style={styles.multiImageContainer}>
           <View style={styles.singleImageContainer}>
-            <ImageDisplay image={images[0]} style={styles.smallImage} showCaption={false} />
+            <ImageDisplay image={images[0]} imageStyle={styles.smallImage} showCaption={false} />
           </View>
           <View style={styles.imageRow}>
-            <ImageDisplay image={images[1]} style={styles.gridImage} showCaption={false} />
-            <ImageDisplay image={images[2]} style={styles.gridImage} showCaption={false} />
+            <ImageDisplay image={images[1]} imageStyle={styles.gridImage} showCaption={false} />
+            <ImageDisplay image={images[2]} imageStyle={styles.gridImage} showCaption={false} />
           </View>
         </View>
       )}
@@ -699,10 +712,10 @@ const MultipleImagesDisplay: React.FC<{
       {images.length >= 4 && (
         <View style={styles.multiImageContainer}>
           <View style={styles.imageGrid}>
-            <ImageDisplay image={images[0]} style={styles.gridImage} showCaption={false} />
-            <ImageDisplay image={images[1]} style={styles.gridImage} showCaption={false} />
-            <ImageDisplay image={images[2]} style={styles.gridImage} showCaption={false} />
-            <ImageDisplay image={images[3]} style={styles.gridImage} showCaption={false} />
+            <ImageDisplay image={images[0]} imageStyle={styles.gridImage} showCaption={false} />
+            <ImageDisplay image={images[1]} imageStyle={styles.gridImage} showCaption={false} />
+            <ImageDisplay image={images[2]} imageStyle={styles.gridImage} showCaption={false} />
+            <ImageDisplay image={images[3]} imageStyle={styles.gridImage} showCaption={false} />
           </View>
           {images.length > 4 && (
             <Text style={styles.imageCaption}>
@@ -773,10 +786,16 @@ const MaintenancePDFDocument: React.FC<MaintenancePDFDocumentProps> = ({
   includeImages = false,
   title = 'Preventive Maintenance Report'
 }) => {
+  ensurePdfFontsRegistered();
   // Validate props
   useEffect(() => {
     validateProps({ data, appliedFilters, includeDetails, includeImages, title });
   }, [data, appliedFilters, includeDetails, includeImages, title]);
+
+  // Ensure fonts are registered in the browser
+  useEffect(() => {
+    ensurePdfFontsRegistered();
+  }, []);
 
   // Add error state
   const [error, setError] = useState<string | null>(null);

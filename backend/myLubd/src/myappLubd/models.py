@@ -441,14 +441,16 @@ class JobImage(models.Model):
                 # Process and convert image
                 processed_image = self.process_image(self.image)
 
-                # Generate filename for WebP version
-                webp_name = f'{os.path.splitext(self.image.name)[0]}.webp'
+                # Generate filename for WebP version inside upload_to path with year/month
+                timestamp_path = timezone.now().strftime("%Y/%m")
+                base_name = Path(self.image.name).stem
+                webp_name = f'maintenance_job_images/{timestamp_path}/{base_name}.webp'
 
                 # Save the WebP version of the image
                 self.image.save(
                     webp_name,
-                    ContentFile(processed_image.getvalue()),  # Save the processed image
-                    save=False  # Don't save the model yet, we still need to handle other fields
+                    ContentFile(processed_image.getvalue()),
+                    save=False
                 )
 
                 # Close the processed image to free memory

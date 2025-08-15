@@ -3,14 +3,32 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Image, Font } from '@react-pdf/renderer';
 import { Job, TabValue, FILTER_TITLES } from '@/app/lib/types';
 
-// ✅ Register Thai font (Sarabun)
-Font.register({
-  family: 'Sarabun',
-  fonts: [
-    { src: '/fonts/Sarabun-Regular.ttf', fontWeight: 'normal' },
-    { src: '/fonts/Sarabun-Bold.ttf', fontWeight: 'bold' },
-  ],
-});
+// Font registration helpers
+const getPublicAssetUrl = (path: string): string => {
+  try {
+    const basePath = (process as any).env?.NEXT_PUBLIC_BASE_PATH || (process as any).env?.NEXT_PUBLIC_ASSET_PREFIX || '';
+    if (typeof window !== 'undefined') {
+      const origin = window.location.origin || '';
+      return `${origin}${basePath}${path}`;
+    }
+    return `${basePath}${path}`;
+  } catch {
+    return path;
+  }
+};
+
+let pdfFontsRegistered = false;
+const ensurePdfFontsRegistered = () => {
+  if (pdfFontsRegistered) return;
+  Font.register({
+    family: 'Sarabun',
+    fonts: [
+      { src: getPublicAssetUrl('/fonts/Sarabun-Regular.ttf'), fontWeight: 'normal' },
+      { src: getPublicAssetUrl('/fonts/Sarabun-Bold.ttf'), fontWeight: 'bold' },
+    ],
+  });
+  pdfFontsRegistered = true;
+};
 
 // Only allow safe image URLs (avoid mixed-content/CORS crashes in @react-pdf/renderer)
 function getSafeImageUrl(url?: string): string | undefined {
@@ -59,19 +77,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderBottomWidth: 1,
     borderColor: '#eee',
-    paddingVertical: 8,
-    paddingHorizontal: 5,
-    minHeight: 80, // ลดความสูงขั้นต่ำ
-    maxHeight: 120, // กำหนดความสูงสูงสุด
-    marginBottom: 5,
-    break: false, // ป้องกันการแบ่งแถว
+    paddingTop: 8,
+    paddingBottom: 8,
+    paddingLeft: 5,
+    paddingRight: 5,
+    minHeight: 80,
+    maxHeight: 120,
   },
   imageColumn: {
-    width: '25%', // ลดขนาดรูป
+    width: '25%',
     marginRight: 10
   },
   infoColumn: {
-    width: '40%', // เพิ่มพื้นที่สำหรับข้อมูล
+    width: '40%',
     paddingRight: 8
   },
   dateColumn: {
@@ -79,18 +97,17 @@ const styles = StyleSheet.create({
   },
   jobImage: {
     width: '100%',
-    height: 60, // ลดความสูงรูป
-    objectFit: 'cover'
+    height: 60
   },
   label: {
-    fontSize: 8, // ลดขนาดฟอนต์
+    fontSize: 8,
     color: '#666',
     marginBottom: 1
   },
   value: {
-    fontSize: 8, // ลดขนาดฟอนต์
+    fontSize: 8,
     marginBottom: 3,
-    lineHeight: 1.2 // ลดระยะห่างบรรทัด
+    lineHeight: 1.2
   },
   statusBadge: {
     fontSize: 8,
@@ -106,12 +123,10 @@ const styles = StyleSheet.create({
     marginBottom: 2,
     lineHeight: 1.1
   },
-  // เพิ่ม style สำหรับข้อความที่อาจยาว
   truncatedText: {
     fontSize: 8,
     marginBottom: 3,
     lineHeight: 1.2,
-    maxLines: 2, // จำกัดจำนวนบรรทัด
   }
 });
 
@@ -151,6 +166,8 @@ function doesJobBelongToProperty(job: Job, selectedProperty: string): boolean {
 }
 
 const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({ jobs, filter, selectedProperty, propertyName }) => {
+  ensurePdfFontsRegistered();
+
   const filteredJobs = jobs.filter((job) => {
     if (!selectedProperty) return true;
 
@@ -189,15 +206,13 @@ const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({ jobs, filter, selecte
     return 'User';
   };
 
-  // ฟังก์ชันตัดข้อความที่ยาวเกินไป
   const truncateText = (text: string, maxLength: number = 100): string => {
     if (!text) return '';
     return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
   };
 
-  // แบ่ง jobs เป็นกลุมๆ เพื่อป้องกันการตกหน้า
-  const jobsPerPage = 8; // จำนวน jobs ต่อหน้า
-  const pageGroups = [];
+  const jobsPerPage = 8;
+  const pageGroups = [] as Job[][];
   for (let i = 0; i < filteredJobs.length; i += jobsPerPage) {
     pageGroups.push(filteredJobs.slice(i, i + jobsPerPage));
   }
@@ -205,8 +220,7 @@ const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({ jobs, filter, selecte
   return (
     <Document>
       {pageGroups.map((jobGroup, pageIndex) => (
-        <Page key={pageIndex} size="A4" style={styles.page}>
-          {/* แสดง header เฉพาะหน้าแรก */}
+        <Page key={pageIndex} size="A4" style={styles.page} wrap>
           {pageIndex === 0 && (
             <View style={styles.header}>
               <Text style={styles.headerText}>{propertyName || 'Unnamed Property'}</Text>
@@ -215,7 +229,6 @@ const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({ jobs, filter, selecte
             </View>
           )}
 
-          {/* แสดง page number สำหรับหน้าที่ 2 เป็นต้นไป */}
           {pageIndex > 0 && (
             <View style={{ marginBottom: 15, alignItems: 'center' }}>
               <Text style={styles.subHeaderText}>Page {pageIndex + 1}</Text>
@@ -231,6 +244,7 @@ const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({ jobs, filter, selecte
                     <Image
                       src={imageUrl}
                       style={styles.jobImage}
+                      cache={false}
                     />
                   ) : (
                     <View style={[styles.jobImage, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f3f4f6' }]}>

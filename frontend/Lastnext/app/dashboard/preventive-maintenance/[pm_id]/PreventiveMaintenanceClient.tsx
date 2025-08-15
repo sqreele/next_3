@@ -503,7 +503,11 @@ export default function PreventiveMaintenanceClient({ maintenanceData }: Prevent
               <div className="flex items-center">
                 <Clipboard className="h-4 w-4 mr-2 text-gray-600" />
                 <span className="text-gray-600 mr-2">Property ID:</span>
-                <span className="font-medium">{maintenanceData.property_id}</span>
+                <span className="font-medium">
+                  {Array.isArray(maintenanceData.property_id)
+                    ? maintenanceData.property_id.join(', ')
+                    : maintenanceData.property_id}
+                </span>
               </div>
             )}
             

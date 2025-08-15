@@ -72,7 +72,7 @@ export interface PreventiveMaintenance {
   custom_days?: number | null;
   next_due_date?: string | null;
   status?: string;
-  property_id?: string | null;
+  property_id?: string | string[] | null;
   notes?: string | null;
   before_image_url?: string | null;
   after_image_url?: string | null;
@@ -217,20 +217,26 @@ export function getMachineDetails(machine: MachineDetails | null | undefined): {
 export function getPropertyDetails(property: any): { id: string | null, name: string | null } {
   if (!property) return { id: null, name: null };
   
+  // If property is an array (API may return [property_id])
+  if (Array.isArray(property)) {
+    const first = property.length > 0 ? property[0] : null;
+    return { id: first ? String(first) : null, name: null };
+  }
+  
   // If property is just a string ID
-  if (typeof property === 'string') {
-      return { id: property, name: null };
+  if (typeof property === 'string' || typeof property === 'number') {
+    return { id: String(property), name: null };
   }
   
   // If property is an object, extract ID and name
   if (typeof property === 'object') {
-      // Try different potential property names for property ID
-      const id = property.property_id || property.id || property.propertyId || null;
-      
-      // Try different potential property names for property name
-      const name = property.name || property.property_name || property.propertyName || null;
-      
-      return { id, name };
+    // Try different potential property names for property ID
+    const id = property.property_id || property.id || property.propertyId || null;
+    
+    // Try different potential property names for property name
+    const name = property.name || property.property_name || property.propertyName || null;
+    
+    return { id, name };
   }
   
   return { id: null, name: null };
@@ -286,6 +292,9 @@ export function getLocationString(item: PreventiveMaintenance): string {
       return firstMachine.location || firstMachine.machine_id || 'Unknown';
   }
   
+  if (Array.isArray(item.property_id)) {
+    return item.property_id[0] || 'Unknown';
+  }
   return item.property_id || 'Unknown';
 }
 

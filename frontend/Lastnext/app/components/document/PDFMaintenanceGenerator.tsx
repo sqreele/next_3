@@ -30,6 +30,10 @@ import {
 import { usePreventiveMaintenance } from '@/app/lib/PreventiveContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { fetchImageAsDataURL } from '@/app/lib/imageUtils';
+import { pdf } from '@react-pdf/renderer';
+import { saveAs } from 'file-saver';
+import MaintenancePDFDocument from '@/app/components/pdf/MaintenancePDFDocument';
 
 interface InitialFilters {
   status: string;
@@ -185,44 +189,9 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({
   // Convert image URL to base64 with proper proxy handling
   const convertImageToBase64 = async (imageUrl: string): Promise<string> => {
     try {
-      console.log('Converting image to base64:', imageUrl);
-      
-      // Create a canvas to convert the image
-      return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        
-        img.onload = () => {
-          try {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            
-            canvas.width = img.naturalWidth;
-            canvas.height = img.naturalHeight;
-            
-            if (ctx) {
-              ctx.drawImage(img, 0, 0);
-              const dataURL = canvas.toDataURL('image/jpeg', 0.8);
-              console.log('Image converted successfully to base64');
-              resolve(dataURL);
-            } else {
-              console.error('Could not get canvas context');
-              resolve(imageUrl);
-            }
-          } catch (error) {
-            console.error('Error drawing image to canvas:', error);
-            resolve(imageUrl);
-          }
-        };
-        
-        img.onerror = (error) => {
-          console.error('Error loading image:', error);
-          resolve(imageUrl); // Fallback to original URL
-        };
-        
-        // Set source after event listeners
-        img.src = imageUrl;
-      });
+      // Prefer direct fetch to avoid canvas tainting issues
+      const dataUrl = await fetchImageAsDataURL(imageUrl, { useProxy: false });
+      return dataUrl;
     } catch (error) {
       console.error('Error in convertImageToBase64:', error);
       return imageUrl;
@@ -370,7 +339,7 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({
       const canvas = await html2canvas(element, {
         scale: Math.max(1, Math.min(canvasScale, 3)),
         useCORS: true,
-        allowTaint: true,
+        allowTaint: false,
         backgroundColor: '#ffffff',
         logging: false,
         width: elementWidth,
@@ -422,6 +391,39 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({
       pdf.save(fileName);
     } catch (error: any) {
       console.error('Error generating PDF:', error);
+      const message = typeof error?.message === 'string' ? error.message : 'Unknown error while generating the PDF.';
+      alert(`Failed to generate PDF. ${message}`);
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
+  // Vector PDF generation using @react-pdf/renderer
+  const generatePDFReact = async () => {
+    try {
+      setIsGeneratingPDF(true);
+      const appliedFilters = {
+        status: filterStatus !== 'all' ? filterStatus : undefined,
+        frequency: filterFrequency !== 'all' ? filterFrequency : undefined,
+        search: searchTerm || undefined,
+        startDate: dateRange.start || undefined,
+        endDate: dateRange.end || undefined,
+      };
+
+      const blob = await pdf(
+        <MaintenancePDFDocument
+          data={filteredData as any}
+          appliedFilters={appliedFilters}
+          includeDetails={includeDetails}
+          includeImages={includeImages}
+          title={"Preventive Maintenance Report"}
+        />
+      ).toBlob();
+
+      const fileName = `preventive-maintenance-report-${new Date().toISOString().split('T')[0]}.pdf`;
+      saveAs(blob, fileName);
+    } catch (error: any) {
+      console.error('Error generating PDF (react-pdf):', error);
       const message = typeof error?.message === 'string' ? error.message : 'Unknown error while generating the PDF.';
       alert(`Failed to generate PDF. ${message}`);
     } finally {
@@ -575,7 +577,7 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({
           </div>
           <div className="flex space-x-3">
             <button
-              onClick={generatePDF}
+              onClick={generatePDFReact}
               disabled={isGeneratingPDF}
               className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >

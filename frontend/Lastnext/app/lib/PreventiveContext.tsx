@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { 
   PreventiveMaintenance, 
@@ -84,6 +84,7 @@ export const PreventiveMaintenanceProvider: React.FC<PreventiveMaintenanceProvid
     page: 1,
     page_size: 10,
   });
+  const hasInitializedRef = useRef(false);
 
   const clearError = useCallback(() => {
     setError(null);
@@ -482,6 +483,7 @@ export const PreventiveMaintenanceProvider: React.FC<PreventiveMaintenanceProvid
       
       // Fetch maintenance items last
       await fetchMaintenanceItems();
+      hasInitializedRef.current = true;
     };
 
     initializeData();
@@ -502,6 +504,12 @@ export const PreventiveMaintenanceProvider: React.FC<PreventiveMaintenanceProvid
      }
    }
  }, [filterParams, machines, maintenanceItems]);
+
+ // ✅ NEW: Refetch items whenever filterParams change (after initial load)
+ useEffect(() => {
+   if (!hasInitializedRef.current) return;
+   fetchMaintenanceItems();
+ }, [filterParams, fetchMaintenanceItems]);
 
  const contextValue: PreventiveMaintenanceContextState = {
    maintenanceItems,

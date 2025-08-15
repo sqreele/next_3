@@ -25,6 +25,7 @@ import {
   Building,
   Camera
 } from 'lucide-react';
+import { fixImageUrl } from '@/app/lib/utils/image-utils';
 
 interface PreventiveMaintenanceClientProps {
   maintenanceData: PreventiveMaintenance;
@@ -265,14 +266,14 @@ export default function PreventiveMaintenanceClient({ maintenanceData }: Prevent
   // Image URL functions
   const getBeforeImageUrl = (): string | null => {
     if (maintenanceData.before_image_url) {
-      return maintenanceData.before_image_url;
+      return fixImageUrl(maintenanceData.before_image_url);
     }
     return null;
   };
 
   const getAfterImageUrl = (): string | null => {
     if (maintenanceData.after_image_url) {
-      return maintenanceData.after_image_url;
+      return fixImageUrl(maintenanceData.after_image_url);
     }
     return null;
   };

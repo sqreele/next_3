@@ -5,11 +5,10 @@ import { useRouter } from "next/navigation";
 import { Plus, FileDown, Filter, SortAsc, SortDesc, Building, Calendar, DoorOpen } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import CreateJobButton from "@/app/components/jobs/CreateJobButton";
-import { pdf } from "@react-pdf/renderer";
-import { saveAs } from "file-saver";
 import JobsPDFDocument from "@/app/components/document/JobsPDFGenerator";
 import { useProperty } from "@/app/lib/PropertyContext";
 import { saveBlobAsPdf, generatePdfWithRetry } from "@/app/lib/pdfUtils";
+import { generatePdfBlob } from "@/app/lib/pdfRenderer";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -165,14 +164,15 @@ export default function JobActions({
       const propertyName = getPropertyName(selectedProperty);
 
       const blob = await generatePdfWithRetry(async () => {
-        return await pdf(
+        const pdfDocument = (
           <JobsPDFDocument
             jobs={jobs}
             filter={currentTab}
             selectedProperty={selectedProperty}
             propertyName={propertyName}
           />
-        ).toBlob();
+        );
+        return await generatePdfBlob(pdfDocument);
       });
 
       const date = format(new Date(), "yyyy-MM-dd");
@@ -189,7 +189,7 @@ export default function JobActions({
       } else {
         errorMessage += error?.message || 'Unknown error. ';
       }
-      errorMessage += 'Please try again later.';
+      errorMessage += ' Please try again later.';
       
       alert(errorMessage);
     } finally {

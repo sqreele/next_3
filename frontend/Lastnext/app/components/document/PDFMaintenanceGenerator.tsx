@@ -34,7 +34,7 @@ import { fetchImageAsDataURL } from '@/app/lib/imageUtils';
 import { pdf } from '@react-pdf/renderer';
 import { saveAs } from 'file-saver';
 import MaintenancePDFDocument from '@/app/components/pdf/MaintenancePDFDocument';
-import { saveBlobAsPdf } from '@/app/lib/pdfUtils';
+import { saveBlobAsPdf, generatePdfWithRetry } from '@/app/lib/pdfUtils';
 
 interface InitialFilters {
   status: string;
@@ -403,6 +403,8 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({
   const generatePDFReact = async () => {
     try {
       setIsGeneratingPDF(true);
+      console.log('Starting PDF generation with React PDF...');
+      
       const appliedFilters = {
         status: filterStatus !== 'all' ? filterStatus : undefined,
         frequency: filterFrequency !== 'all' ? filterFrequency : undefined,
@@ -410,23 +412,114 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({
         startDate: dateRange.start || undefined,
         endDate: dateRange.end || undefined,
       };
+      
+      console.log('Applied filters:', appliedFilters);
+      console.log('Filtered data count:', filteredData.length);
 
-      const blob = await pdf(
-        <MaintenancePDFDocument
-          data={filteredData as any}
-          appliedFilters={appliedFilters}
-          includeDetails={includeDetails}
-          includeImages={includeImages}
-          title={"Preventive Maintenance Report"}
-        />
-      ).toBlob();
+      const blob = await generatePdfWithRetry(async () => {
+        return await pdf(
+          <MaintenancePDFDocument
+            data={filteredData as any}
+            appliedFilters={appliedFilters}
+            includeDetails={includeDetails}
+            includeImages={includeImages}
+            title={"Preventive Maintenance Report"}
+          />
+        ).toBlob();
+      });
 
+      console.log('PDF blob generated successfully, size:', blob.size);
+      
       const fileName = `preventive-maintenance-report-${new Date().toISOString().split('T')[0]}.pdf`;
       await saveBlobAsPdf(blob, fileName);
+      
+      console.log('PDF saved successfully:', fileName);
     } catch (error: any) {
       console.error('Error generating PDF (react-pdf):', error);
-      const message = typeof error?.message === 'string' ? error.message : 'Unknown error while generating the PDF.';
-      alert(`Failed to generate PDF. ${message}`);
+      console.error('Error stack:', error?.stack);
+      console.error('Error details:', {
+        message: error?.message,
+        name: error?.name,
+        code: error?.code,
+      });
+      
+      // Check for specific error types
+      let errorMessage = 'Failed to generate PDF. ';
+      
+      if (error?.message?.includes('Font')) {
+        errorMessage += 'Font loading error. The PDF fonts may not be available. ';
+      } else if (error?.message?.includes('blob') || error?.message?.includes('Blob')) {
+        errorMessage += 'Failed to create PDF file. ';
+      } else if (error?.message?.includes('saveBlobAsPdf')) {
+        errorMessage += 'Failed to save PDF file. ';
+      } else if (error?.message?.includes('%PDF')) {
+        errorMessage += 'Generated file is not a valid PDF. ';
+      } else {
+        errorMessage += typeof error?.message === 'string' ? error.message : 'Unknown error occurred. ';
+      }
+      
+      errorMessage += 'Please try again later.';
+      
+      alert(errorMessage);
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
+  // Simple PDF generation without custom fonts as fallback
+  const generateSimplePDF = async () => {
+    try {
+      setIsGeneratingPDF(true);
+      console.log('Starting simple PDF generation...');
+      
+      const { Document, Page, Text, View, StyleSheet, pdf } = await import('@react-pdf/renderer');
+      
+      // Create simple styles without custom fonts
+      const simpleStyles = StyleSheet.create({
+        page: { padding: 30 },
+        title: { fontSize: 20, marginBottom: 20, textAlign: 'center' },
+        section: { marginBottom: 10 },
+        text: { fontSize: 12, marginBottom: 5 },
+      });
+      
+      // Create a simple PDF document
+      const SimpleDoc = () => (
+        <Document>
+          <Page size="A4" style={simpleStyles.page}>
+            <Text style={simpleStyles.title}>Preventive Maintenance Report</Text>
+            <Text style={simpleStyles.text}>Generated on: {new Date().toLocaleDateString()}</Text>
+            <Text style={simpleStyles.text}>Total Records: {filteredData.length}</Text>
+            
+            {filteredData.slice(0, 10).map((item, index) => (
+              <View key={item.id} style={simpleStyles.section}>
+                <Text style={simpleStyles.text}>
+                  {index + 1}. {item.pmtitle || 'No title'} - {item.pm_id}
+                </Text>
+                <Text style={simpleStyles.text}>
+                  Status: {getTaskStatus(item)} | Date: {formatDate(item.scheduled_date)}
+                </Text>
+              </View>
+            ))}
+            
+            {filteredData.length > 10 && (
+              <Text style={simpleStyles.text}>
+                ... and {filteredData.length - 10} more records
+              </Text>
+            )}
+          </Page>
+        </Document>
+      );
+      
+      const blob = await pdf(<SimpleDoc />).toBlob();
+      console.log('Simple PDF generated, size:', blob.size);
+      
+      const fileName = `preventive-maintenance-simple-${new Date().toISOString().split('T')[0]}.pdf`;
+      await saveBlobAsPdf(blob, fileName);
+      
+      console.log('Simple PDF saved successfully');
+    } catch (error: any) {
+      console.error('Error generating simple PDF:', error);
+      alert('Failed to generate PDF. Please check the console for details.');
     } finally {
       setIsGeneratingPDF(false);
     }
@@ -549,6 +642,61 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({
     URL.revokeObjectURL(url);
   };
 
+  // Browser print function as ultimate fallback
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Please allow popups to print the report');
+      return;
+    }
+    
+    const content = document.getElementById('pdf-content');
+    if (!content) {
+      alert('No content to print');
+      return;
+    }
+    
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Preventive Maintenance Report</title>
+        <style>
+          @media print {
+            body { margin: 0; font-family: Arial, sans-serif; }
+            .no-print { display: none !important; }
+          }
+          body { font-family: Arial, sans-serif; line-height: 1.6; }
+          table { width: 100%; border-collapse: collapse; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+          th { background-color: #f2f2f2; }
+          .text-green-600 { color: #16a34a; }
+          .text-yellow-600 { color: #ca8a04; }
+          .text-red-600 { color: #dc2626; }
+          .text-blue-600 { color: #2563eb; }
+          .text-orange-600 { color: #ea580c; }
+          .text-gray-600 { color: #4b5563; }
+        </style>
+      </head>
+      <body>
+        ${content.innerHTML}
+      </body>
+      </html>
+    `;
+    
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    
+    // Wait for content to load then print
+    printWindow.onload = () => {
+      printWindow.print();
+      // Close window after print dialog
+      printWindow.onafterprint = () => {
+        printWindow.close();
+      };
+    };
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -595,8 +743,23 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({
               )}
             </button>
             <button
+              onClick={generateSimplePDF}
+              disabled={isGeneratingPDF}
+              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Simple PDF
+            </button>
+            <button
+              onClick={handlePrint}
+              className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              <Printer className="h-4 w-4 mr-2" />
+              Print
+            </button>
+            <button
               onClick={downloadHTML}
-              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
             >
               <Download className="h-4 w-4 mr-2" />
               Download HTML

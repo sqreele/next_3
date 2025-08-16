@@ -517,7 +517,7 @@ class PreventiveMaintenanceDetailSerializer(serializers.ModelSerializer):
         fields = [
             'pm_id', 'job', 'pmtitle', 'topics', 'topic_ids', 'scheduled_date', 'completed_date',
             'frequency', 'custom_days', 'next_due_date', 'before_image', 'after_image',
-            'before_image_url', 'after_image_url', 'notes', 'created_by', 'updated_at',
+            'before_image_url', 'after_image_url', 'notes', 'procedure', 'created_by', 'updated_at',
             'is_overdue', 'days_remaining', 'machine_ids', 'machines', 'property_id'
         ]
         read_only_fields = ['pm_id', 'created_by', 'updated_at', 'next_due_date']
@@ -525,6 +525,7 @@ class PreventiveMaintenanceDetailSerializer(serializers.ModelSerializer):
             'before_image': {'required': False},
             'after_image': {'required': False},
             'notes': {'required': False},
+            'procedure': {'required': False},
             'pmtitle': {'required': False},
             'custom_days': {'required': False},
             'completed_date': {'required': False},
@@ -648,13 +649,14 @@ class PreventiveMaintenanceCreateUpdateSerializer(serializers.ModelSerializer):
         fields = [
             'pm_id', 'pmtitle', 'topics', 'topic_ids', 'scheduled_date', 'completed_date',
             'frequency', 'custom_days', 'next_due_date', 'before_image', 'after_image',
-            'before_image_url', 'after_image_url', 'notes', 'machine_ids', 'machines', 'property_id'
+            'before_image_url', 'after_image_url', 'notes', 'procedure', 'machine_ids', 'machines', 'property_id'
         ]
         read_only_fields = ['pm_id', 'next_due_date']
         extra_kwargs = {
             'before_image': {'required': False},
             'after_image': {'required': False},
             'notes': {'required': False},
+            'procedure': {'required': False},
             'pmtitle': {'required': False},
             'custom_days': {'required': False},
             'completed_date': {'required': False},

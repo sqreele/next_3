@@ -122,9 +122,9 @@ const PreventiveMaintenanceForm: React.FC<PreventiveMaintenanceFormProps> = ({
     if (values.selected_topics.length === 0) errors.selected_topics = 'At least one topic must be selected';
     if (!values.property_id) errors.property_id = 'Property selection is required';
     // Uncomment if machine selection is mandatory:
-    // if (!values.selected_machine_ids || values.selected_machine_ids.length === 0) {
-    //   errors.selected_machine_ids = 'At least one machine must be selected';
-    // }
+    if (!values.selected_machine_ids || values.selected_machine_ids.length === 0) {
+      errors.selected_machine_ids = 'At least one machine must be selected';
+    }
     if (values.before_image_file && values.before_image_file.size > MAX_FILE_SIZE)
       errors.before_image_file = 'Before image must be less than 5MB';
     if (values.after_image_file && values.after_image_file.size > MAX_FILE_SIZE)

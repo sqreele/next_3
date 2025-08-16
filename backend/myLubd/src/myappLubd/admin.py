@@ -280,7 +280,7 @@ class PreventiveMaintenanceAdmin(admin.ModelAdmin):
             'fields': ('scheduled_date', 'frequency', 'custom_days', 'completed_date', 'next_due_date')
         }),
         ('Documentation & Images', {
-            'fields': ('notes', 'before_image', 'before_image_preview', 'after_image', 'after_image_preview')
+            'fields': ('procedure', 'notes', 'before_image', 'before_image_preview', 'after_image', 'after_image_preview')
         }),
         ('Related Items', {
             'fields': ('topics',)

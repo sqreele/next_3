@@ -83,6 +83,7 @@ class PreventiveMaintenance(models.Model):
     )
     
     notes = models.TextField(blank=True, null=True)
+    procedure = models.TextField(blank=True, null=True, help_text="Maintenance procedure details")
     created_by = models.ForeignKey(
         User,
         on_delete=models.CASCADE,

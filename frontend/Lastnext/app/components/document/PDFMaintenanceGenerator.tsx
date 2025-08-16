@@ -31,12 +31,9 @@ import { usePreventiveMaintenance } from '@/app/lib/PreventiveContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { fetchImageAsDataURL } from '@/app/lib/imageUtils';
-import { pdf } from '@react-pdf/renderer';
-import * as ReactPDF from '@react-pdf/renderer';
-// @ts-ignore
 import MaintenancePDFDocument from '@/app/components/pdf/MaintenancePDFDocument';
 import { saveBlobAsPdf, generatePdfWithRetry } from '@/app/lib/pdfUtils';
-import { generatePdfBlob } from '@/app/lib/pdfRenderer';
+import { generatePdfBlob, Document, Page, Text, View, StyleSheet } from '@/app/lib/pdfRenderer';
 
 interface InitialFilters {
   status: string;
@@ -479,7 +476,7 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({
         errorMessage += error?.message || 'Unknown error. ';
       }
       
-      errorMessage += 'Please try again later.';
+      errorMessage += ' Please try again later.';
       
       alert(errorMessage);
     } finally {
@@ -492,8 +489,6 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({
     try {
       setIsGeneratingPDF(true);
       console.log('Starting simple PDF generation...');
-      
-      const { Document, Page, Text, View, StyleSheet, pdf } = await import('@react-pdf/renderer');
       
       // Create simple styles without custom fonts
       const simpleStyles = StyleSheet.create({
@@ -531,7 +526,7 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({
         </Document>
       );
       
-      const blob = await pdf(<SimpleDoc />).toBlob();
+      const blob = await generatePdfBlob(<SimpleDoc />);
       console.log('Simple PDF generated, size:', blob.size);
       
       const fileName = `preventive-maintenance-simple-${new Date().toISOString().split('T')[0]}.pdf`;

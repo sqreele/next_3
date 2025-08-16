@@ -9,6 +9,7 @@ import { pdf } from "@react-pdf/renderer";
 import { saveAs } from "file-saver";
 import JobsPDFDocument from "@/app/components/document/JobsPDFGenerator";
 import { useProperty } from "@/app/lib/PropertyContext";
+import { saveBlobAsPdf } from "@/app/lib/pdfUtils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -174,7 +175,7 @@ export default function JobActions({
 
       const date = format(new Date(), "yyyy-MM-dd");
       const filename = `jobs-report-${date}.pdf`;
-      saveAs(blob, filename);
+      await saveBlobAsPdf(blob, filename);
     } catch (error) {
       console.error("Error generating PDF:", error);
       alert("Failed to generate PDF. Please try again later.");

@@ -34,6 +34,7 @@ import { fetchImageAsDataURL } from '@/app/lib/imageUtils';
 import { pdf } from '@react-pdf/renderer';
 import { saveAs } from 'file-saver';
 import MaintenancePDFDocument from '@/app/components/pdf/MaintenancePDFDocument';
+import { saveBlobAsPdf } from '@/app/lib/pdfUtils';
 
 interface InitialFilters {
   status: string;
@@ -421,7 +422,7 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({
       ).toBlob();
 
       const fileName = `preventive-maintenance-report-${new Date().toISOString().split('T')[0]}.pdf`;
-      saveAs(blob, fileName);
+      await saveBlobAsPdf(blob, fileName);
     } catch (error: any) {
       console.error('Error generating PDF (react-pdf):', error);
       const message = typeof error?.message === 'string' ? error.message : 'Unknown error while generating the PDF.';

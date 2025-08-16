@@ -17,8 +17,8 @@ interface JobsPDFDocumentProps {
   filter: TabValue;
   selectedProperty?: string | null;
   propertyName?: string;
-  topics: any[];
-  onTopicChange: (topicId: string) => void;
+  topics?: any[];
+  onTopicChange?: (topicId: string) => void;
 }
 
 const styles = StyleSheet.create({

@@ -574,7 +574,10 @@ class PreventiveMaintenanceDetailSerializer(serializers.ModelSerializer):
     
     def get_property_id(self, obj):
         machines = obj.machines.all()
-        return [machine.property.property_id for machine in machines] if machines else []
+        if machines:
+            # All machines must belong to the same property, so return the first one
+            return machines.first().property.property_id
+        return None
 
     def create(self, validated_data):
         topic_ids = validated_data.pop('topic_ids', [])
@@ -677,7 +680,10 @@ class PreventiveMaintenanceCreateUpdateSerializer(serializers.ModelSerializer):
 
     def get_property_id(self, obj):
         machines = obj.machines.all()
-        return [machine.property.property_id for machine in machines] if machines else []
+        if machines:
+            # All machines must belong to the same property, so return the first one
+            return machines.first().property.property_id
+        return None
 
     def create(self, validated_data):
         topic_ids = validated_data.pop('topic_ids', [])
@@ -745,7 +751,10 @@ class PreventiveMaintenanceCompleteSerializer(serializers.ModelSerializer):
 
     def get_property_id(self, obj):
         machines = obj.machines.all()
-        return [machine.property.property_id for machine in machines] if machines else []
+        if machines:
+            # All machines must belong to the same property, so return the first one
+            return machines.first().property.property_id
+        return None
 
     def update(self, instance, validated_data):
         machine_ids = validated_data.pop('machine_ids', None)
@@ -812,7 +821,10 @@ class PreventiveMaintenanceSerializer(serializers.ModelSerializer):
 
     def get_property_id(self, obj):
         machines = obj.machines.all()
-        return [machine.property.property_id for machine in machines] if machines else []
+        if machines:
+            # All machines must belong to the same property, so return the first one
+            return machines.first().property.property_id
+        return None
 
     def get_before_image_url(self, obj):
         request = self.context.get('request')

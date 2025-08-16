@@ -72,7 +72,7 @@ export interface PreventiveMaintenance {
   custom_days?: number | null;
   next_due_date?: string | null;
   status?: string;
-  property_id?: string | string[] | null;
+  property_id?: string | null;
   notes?: string | null;
   before_image_url?: string | null;
   after_image_url?: string | null;

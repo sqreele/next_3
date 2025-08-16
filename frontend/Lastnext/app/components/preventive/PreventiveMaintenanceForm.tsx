@@ -371,6 +371,29 @@ const PreventiveMaintenanceForm: React.FC<PreventiveMaintenanceFormProps> = ({
     }
 
     try {
+      // Validate dates before submission
+      if (values.completed_date && values.scheduled_date) {
+        const scheduledDate = new Date(values.scheduled_date);
+        const completedDate = new Date(values.completed_date);
+        
+        if (completedDate < scheduledDate) {
+          setSubmitError('Completion date cannot be earlier than scheduled date');
+          setIsLoading(false);
+          setIsImageUploading(false);
+          setSubmitting(false);
+          return;
+        }
+      }
+
+      // Ensure property_id is set when machines are selected
+      if (values.selected_machine_ids && values.selected_machine_ids.length > 0 && !values.property_id) {
+        setSubmitError('Property must be selected when machines are specified');
+        setIsLoading(false);
+        setIsImageUploading(false);
+        setSubmitting(false);
+        return;
+      }
+
       const dataForService: CreatePreventiveMaintenanceData = {
         pmtitle: values.pmtitle.trim() || 'Untitled Maintenance',
         scheduled_date: values.scheduled_date,

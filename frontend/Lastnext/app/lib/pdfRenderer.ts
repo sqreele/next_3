@@ -62,4 +62,4 @@ export async function generatePdfBlob(documentElement: React.ReactElement): Prom
 
 // Re-export types and components
 export { Document, Page, Text, View, StyleSheet, Image, Font } from '@react-pdf/renderer';
-export type { Style } from '@react-pdf/renderer';
+export type { Styles } from '@react-pdf/renderer';

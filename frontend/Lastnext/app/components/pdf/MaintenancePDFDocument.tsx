@@ -22,13 +22,24 @@ import {
 // Font registration helpers to resolve absolute public URLs in both dev and prod
 const getPublicAssetUrl = (path: string): string => {
   try {
-    const basePath = (process as any).env?.NEXT_PUBLIC_BASE_PATH || (process as any).env?.NEXT_PUBLIC_ASSET_PREFIX || '';
+    // Check if we're in a browser environment
     if (typeof window !== 'undefined') {
-      const origin = window.location.origin || '';
-      return `${origin}${basePath}${path}`;
+      // In browser, construct URL relative to current origin
+      const origin = window.location.origin;
+      const basePath = (window as any).__NEXT_DATA__?.buildId ? '' : '';
+      const url = `${origin}${basePath}${path}`;
+      console.log('Font URL (browser):', url);
+      return url;
+    } else {
+      // Server-side or build time
+      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || process.env.NEXT_PUBLIC_ASSET_PREFIX || '';
+      const url = `${basePath}${path}`;
+      console.log('Font URL (server):', url);
+      return url;
     }
-    return `${basePath}${path}`;
-  } catch {
+  } catch (error) {
+    console.error('Error constructing font URL:', error);
+    // Fallback to relative path
     return path;
   }
 };
@@ -36,16 +47,36 @@ const getPublicAssetUrl = (path: string): string => {
 let pdfFontsRegistered = false;
 const ensurePdfFontsRegistered = () => {
   if (pdfFontsRegistered) return;
-  const regular = getPublicAssetUrl('/fonts/Sarabun-Regular.ttf');
-  const bold = getPublicAssetUrl('/fonts/Sarabun-Bold.ttf');
-  Font.register({
-    family: 'Sarabun',
-    fonts: [
-      { src: regular, fontWeight: 'normal' },
-      { src: bold, fontWeight: 'bold' },
-    ],
-  });
-  pdfFontsRegistered = true;
+  
+  try {
+    const regular = getPublicAssetUrl('/fonts/Sarabun-Regular.ttf');
+    const bold = getPublicAssetUrl('/fonts/Sarabun-Bold.ttf');
+    
+    console.log('Registering PDF fonts:', { regular, bold });
+    
+    Font.register({
+      family: 'Sarabun',
+      fonts: [
+        { src: regular, fontWeight: 'normal' },
+        { src: bold, fontWeight: 'bold' },
+      ],
+    });
+    
+    pdfFontsRegistered = true;
+    console.log('PDF fonts registered successfully');
+  } catch (error) {
+    console.error('Error registering PDF fonts:', error);
+    // Register fallback font if custom fonts fail
+    try {
+      Font.register({
+        family: 'Helvetica',
+        src: '',  // Use built-in Helvetica
+      });
+      console.log('Fallback to Helvetica font');
+    } catch (fallbackError) {
+      console.error('Error registering fallback font:', fallbackError);
+    }
+  }
 };
 
 // ✅ Fixed interface for images
@@ -76,7 +107,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     padding: 40,
     fontSize: 10,
-    fontFamily: 'Sarabun',
+    fontFamily: 'Sarabun, Helvetica, Arial',
     margin: 0
   },
   header: {

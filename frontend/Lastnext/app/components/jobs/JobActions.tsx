@@ -9,7 +9,7 @@ import { pdf } from "@react-pdf/renderer";
 import { saveAs } from "file-saver";
 import JobsPDFDocument from "@/app/components/document/JobsPDFGenerator";
 import { useProperty } from "@/app/lib/PropertyContext";
-import { saveBlobAsPdf } from "@/app/lib/pdfUtils";
+import { saveBlobAsPdf, generatePdfWithRetry } from "@/app/lib/pdfUtils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -164,21 +164,34 @@ export default function JobActions({
       setIsGenerating(true);
       const propertyName = getPropertyName(selectedProperty);
 
-      const blob = await pdf(
-        <JobsPDFDocument
-          jobs={jobs}
-          filter={currentTab}
-          selectedProperty={selectedProperty}
-          propertyName={propertyName}
-        />
-      ).toBlob();
+      const blob = await generatePdfWithRetry(async () => {
+        return await pdf(
+          <JobsPDFDocument
+            jobs={jobs}
+            filter={currentTab}
+            selectedProperty={selectedProperty}
+            propertyName={propertyName}
+          />
+        ).toBlob();
+      });
 
       const date = format(new Date(), "yyyy-MM-dd");
       const filename = `jobs-report-${date}.pdf`;
       await saveBlobAsPdf(blob, filename);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating PDF:", error);
-      alert("Failed to generate PDF. Please try again later.");
+      
+      let errorMessage = 'Failed to generate PDF. ';
+      if (error?.message?.includes('Font')) {
+        errorMessage += 'Font loading error. ';
+      } else if (error?.message?.includes('%PDF')) {
+        errorMessage += 'Invalid PDF format. ';
+      } else {
+        errorMessage += error?.message || 'Unknown error. ';
+      }
+      errorMessage += 'Please try again later.';
+      
+      alert(errorMessage);
     } finally {
       setIsGenerating(false);
     }

@@ -30,10 +30,6 @@ import {
 import { usePreventiveMaintenance } from '@/app/lib/PreventiveContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { fetchImageAsDataURL } from '@/app/lib/imageUtils';
-import MaintenancePDFDocument from '@/app/components/pdf/MaintenancePDFDocument';
-import { saveBlobAsPdf, generatePdfWithRetry } from '@/app/lib/pdfUtils';
-import { generatePdfBlob, Document, Page, Text, View, StyleSheet } from '@/app/lib/pdfRenderer';
 
 interface InitialFilters {
   status: string;
@@ -44,6 +40,7 @@ interface InitialFilters {
   machineId: string;
   page: number;
   pageSize: number;
+  topic?: string;
 }
 
 interface PDFMaintenanceGeneratorProps {
@@ -55,13 +52,11 @@ interface MachineOption {
   label: string;
 }
 
-const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({ 
-  initialFilters 
-}) => {
+const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({ initialFilters }) => {
   const router = useRouter();
   
   // Get maintenance data from context
-  const { maintenanceItems, fetchMaintenanceItems } = usePreventiveMaintenance();
+  const { maintenanceItems, fetchMaintenanceItems, topics } = usePreventiveMaintenance();
   const maintenanceData = maintenanceItems || [];
   
   // Initialize filters with URL parameters or defaults
@@ -80,12 +75,7 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [imageDataUrls, setImageDataUrls] = useState<{[key: string]: string}>({});
   const printRef = useRef(null);
-
-  // Advanced image/PDF options
-  const [imgQuality, setImgQuality] = useState(0.92); // 0-1
-  const [canvasScale, setCanvasScale] = useState(2); // 1-3 typical
-  const [imageFormat, setImageFormat] = useState<'PNG' | 'JPEG'>('PNG');
-  const [marginMm, setMarginMm] = useState(10);
+  const [filterTopic, setFilterTopic] = useState(initialFilters?.topic || 'all');
 
   // Helper functions
   const getTaskStatus = (item: PreventiveMaintenance) => {
@@ -168,7 +158,9 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({
     
     const completedMatch = includeCompleted || actualStatus !== 'completed';
     
-    return statusMatch && frequencyMatch && machineMatch && dateMatch && completedMatch && searchMatch;
+    const topicMatch = filterTopic === 'all' || (item.topics && item.topics.some((t: any) => t.id === filterTopic));
+    
+    return statusMatch && frequencyMatch && machineMatch && dateMatch && completedMatch && searchMatch && topicMatch;
   });
 
   // ✅ Test machine filtering function
@@ -189,9 +181,44 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({
   // Convert image URL to base64 with proper proxy handling
   const convertImageToBase64 = async (imageUrl: string): Promise<string> => {
     try {
-      // Prefer direct fetch to avoid canvas tainting issues
-      const dataUrl = await fetchImageAsDataURL(imageUrl, { useProxy: false });
-      return dataUrl;
+      console.log('Converting image to base64:', imageUrl);
+      
+      // Create a canvas to convert the image
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            
+            if (ctx) {
+              ctx.drawImage(img, 0, 0);
+              const dataURL = canvas.toDataURL('image/jpeg', 0.8);
+              console.log('Image converted successfully to base64');
+              resolve(dataURL);
+            } else {
+              console.error('Could not get canvas context');
+              resolve(imageUrl);
+            }
+          } catch (error) {
+            console.error('Error drawing image to canvas:', error);
+            resolve(imageUrl);
+          }
+        };
+        
+        img.onerror = (error) => {
+          console.error('Error loading image:', error);
+          resolve(imageUrl); // Fallback to original URL
+        };
+        
+        // Set source after event listeners
+        img.src = imageUrl;
+      });
     } catch (error) {
       console.error('Error in convertImageToBase64:', error);
       return imageUrl;
@@ -307,39 +334,65 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({
     const element = document.getElementById('pdf-content');
     if (!element) {
       console.error('PDF content element not found');
-      alert('PDF content not found on the page.');
       return;
     }
 
     try {
       setIsGeneratingPDF(true);
+      console.log('Starting PDF generation...');
+
       // Wait for images to load if they're included
       if (includeImages) {
+        console.log('Waiting for images to load...');
         const images = element.querySelectorAll('img');
+        
         await Promise.all(Array.from(images).map((img) => {
           return new Promise((resolve) => {
             if (img.complete && img.naturalHeight !== 0) {
+              console.log('Image already loaded:', img.src.substring(0, 50) + '...');
               resolve(img);
             } else {
-              const onLoad = () => resolve(img);
-              const onError = () => resolve(img);
-              img.addEventListener('load', onLoad, { once: true });
-              img.addEventListener('error', onError, { once: true });
-              setTimeout(() => resolve(img), 10000);
+              console.log('Waiting for image to load:', img.src.substring(0, 50) + '...');
+              
+              const onLoad = () => {
+                console.log('Image loaded successfully');
+                resolve(img);
+              };
+              
+              const onError = () => {
+                console.warn('Image failed to load');
+                resolve(img);
+              };
+              
+              img.addEventListener('load', onLoad);
+              img.addEventListener('error', onError);
+              
+              // Timeout after 10 seconds
+              setTimeout(() => {
+                console.warn('Image load timeout');
+                resolve(img);
+              }, 10000);
             }
           });
         }));
-        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Additional wait for rendering
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
 
-      // Capture with html2canvas
+      console.log('Capturing content with html2canvas...');
+      
+      // Get the actual content dimensions
       const elementWidth = element.scrollWidth;
       const elementHeight = element.scrollHeight;
+      
+      console.log('Element dimensions:', elementWidth, 'x', elementHeight);
 
+      // Capture with html2canvas
       const canvas = await html2canvas(element, {
-        scale: Math.max(1, Math.min(canvasScale, 3)),
+        scale: 2, // High resolution
         useCORS: true,
-        allowTaint: false,
+        allowTaint: true,
         backgroundColor: '#ffffff',
         logging: false,
         width: elementWidth,
@@ -353,189 +406,55 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({
         foreignObjectRendering: false,
       });
 
-      const dataUrlType = imageFormat === 'PNG' ? 'image/png' : 'image/jpeg';
-      const imgData = canvas.toDataURL(dataUrlType, Math.max(0.5, Math.min(imgQuality, 1)));
-      const pdf = new jsPDF('p', 'mm', 'a4');
+      console.log('Canvas created, dimensions:', canvas.width, 'x', canvas.height);
 
+      // Create PDF with proper centering
+      const imgData = canvas.toDataURL('image/png', 1.0);
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      
       // A4 dimensions in mm
       const pdfWidth = 210;
       const pdfHeight = 297;
-      const margin = Math.max(0, Math.min(marginMm, 20));
+      const margin = 10; // 10mm margin on all sides
       const contentWidth = pdfWidth - (margin * 2);
       const contentHeight = pdfHeight - (margin * 2);
-
-      // Pixels to mm conversion
-      const pxToMm = (px: number) => px * 0.264583;
-      const imgWidthMm = pxToMm(canvas.width);
-      const imgHeightMm = pxToMm(canvas.height);
-
+      
+      // Calculate scaling to fit content within margins
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      
       // Scale to fit width while maintaining aspect ratio
-      const scale = contentWidth / imgWidthMm;
+      const scale = contentWidth / (imgWidth * 0.264583); // Convert pixels to mm
       const scaledWidth = contentWidth;
-      const scaledHeight = imgHeightMm * scale;
-
-      let position = margin;
+      const scaledHeight = (imgHeight * 0.264583) * scale;
+      
+      console.log('PDF scaling:', scale, 'Scaled dimensions:', scaledWidth, 'x', scaledHeight);
+      
+      let position = margin; // Start with top margin
       let remainingHeight = scaledHeight;
 
-      pdf.addImage(imgData, imageFormat, margin, position, scaledWidth, scaledHeight);
+      // Add first page with centered content
+      pdf.addImage(imgData, 'PNG', margin, position, scaledWidth, scaledHeight);
       remainingHeight -= contentHeight;
 
+      // Add additional pages if content is longer than one page
       while (remainingHeight > 0) {
         position = -(scaledHeight - remainingHeight) + margin;
         pdf.addPage();
-        pdf.addImage(imgData, imageFormat, margin, position, scaledWidth, scaledHeight);
+        pdf.addImage(imgData, 'PNG', margin, position, scaledWidth, scaledHeight);
         remainingHeight -= contentHeight;
       }
 
+      // Save the PDF
       const fileName = `preventive-maintenance-report-${new Date().toISOString().split('T')[0]}.pdf`;
+      console.log('Saving PDF:', fileName);
       pdf.save(fileName);
-    } catch (error: any) {
+
+      console.log('PDF generation completed successfully');
+
+    } catch (error) {
       console.error('Error generating PDF:', error);
-      const message = typeof error?.message === 'string' ? error.message : 'Unknown error while generating the PDF.';
-      alert(`Failed to generate PDF. ${message}`);
-    } finally {
-      setIsGeneratingPDF(false);
-    }
-  };
-
-  // Vector PDF generation using @react-pdf/renderer
-  const generatePDFReact = async () => {
-    try {
-      setIsGeneratingPDF(true);
-      console.log('Starting PDF generation with React PDF...');
-      
-      const appliedFilters = {
-        status: filterStatus !== 'all' ? filterStatus : undefined,
-        frequency: filterFrequency !== 'all' ? filterFrequency : undefined,
-        search: searchTerm || undefined,
-        startDate: dateRange.start || undefined,
-        endDate: dateRange.end || undefined,
-      };
-      
-      console.log('Applied filters:', appliedFilters);
-      console.log('Filtered data count:', filteredData.length);
-
-      const blob = await generatePdfWithRetry(async () => {
-        try {
-          // Create the PDF document component
-          const pdfDocument = (
-            <MaintenancePDFDocument
-              data={filteredData as any}
-              appliedFilters={appliedFilters}
-              includeDetails={includeDetails}
-              includeImages={includeImages}
-              title={"Preventive Maintenance Report"}
-            />
-          );
-          
-          console.log('PDF document component created, generating blob...');
-          
-          // Use our wrapper function that handles import issues
-          const blob = await generatePdfBlob(pdfDocument);
-          console.log('Blob generated successfully');
-          
-          return blob;
-        } catch (error: any) {
-          console.error('Error generating PDF:', error);
-          console.error('Error stack:', error?.stack);
-          
-          // If it's still the 'r is not a function' error, provide helpful message
-          if (error?.message?.includes('is not a function')) {
-            throw new Error('PDF library initialization error. This may be due to a bundling issue. Please try refreshing the page.');
-          }
-          
-          throw error;
-        }
-      });
-
-      console.log('PDF blob generated successfully, size:', blob.size);
-      
-      const fileName = `preventive-maintenance-report-${new Date().toISOString().split('T')[0]}.pdf`;
-      await saveBlobAsPdf(blob, fileName);
-      
-      console.log('PDF saved successfully:', fileName);
-    } catch (error: any) {
-      console.error('Error generating PDF (react-pdf):', error);
-      console.error('Error stack:', error?.stack);
-      console.error('Error details:', {
-        message: error?.message,
-        name: error?.name,
-        code: error?.code,
-      });
-      
-      // Check for specific error types
-      let errorMessage = 'Failed to generate PDF. ';
-      
-      if (error?.message?.includes('Font')) {
-        errorMessage += 'Font loading error. The PDF fonts may not be available. ';
-      } else if (error?.message?.includes('Network')) {
-        errorMessage += 'Network error. Please check your internet connection. ';
-      } else if (error?.message?.includes('not a function')) {
-        errorMessage += 'Internal error: ' + error.message + '. ';
-      } else {
-        errorMessage += error?.message || 'Unknown error. ';
-      }
-      
-      errorMessage += ' Please try again later.';
-      
-      alert(errorMessage);
-    } finally {
-      setIsGeneratingPDF(false);
-    }
-  };
-
-  // Simple PDF generation without custom fonts as fallback
-  const generateSimplePDF = async () => {
-    try {
-      setIsGeneratingPDF(true);
-      console.log('Starting simple PDF generation...');
-      
-      // Create simple styles without custom fonts
-      const simpleStyles = StyleSheet.create({
-        page: { padding: 30 },
-        title: { fontSize: 20, marginBottom: 20, textAlign: 'center' },
-        section: { marginBottom: 10 },
-        text: { fontSize: 12, marginBottom: 5 },
-      });
-      
-      // Create a simple PDF document
-      const SimpleDoc = () => (
-        <Document>
-          <Page size="A4" style={simpleStyles.page}>
-            <Text style={simpleStyles.title}>Preventive Maintenance Report</Text>
-            <Text style={simpleStyles.text}>Generated on: {new Date().toLocaleDateString()}</Text>
-            <Text style={simpleStyles.text}>Total Records: {filteredData.length}</Text>
-            
-            {filteredData.slice(0, 10).map((item, index) => (
-              <View key={item.id} style={simpleStyles.section}>
-                <Text style={simpleStyles.text}>
-                  {index + 1}. {item.pmtitle || 'No title'} - {item.pm_id}
-                </Text>
-                <Text style={simpleStyles.text}>
-                  Status: {getTaskStatus(item)} | Date: {formatDate(item.scheduled_date)}
-                </Text>
-              </View>
-            ))}
-            
-            {filteredData.length > 10 && (
-              <Text style={simpleStyles.text}>
-                ... and {filteredData.length - 10} more records
-              </Text>
-            )}
-          </Page>
-        </Document>
-      );
-      
-      const blob = await generatePdfBlob(<SimpleDoc />);
-      console.log('Simple PDF generated, size:', blob.size);
-      
-      const fileName = `preventive-maintenance-simple-${new Date().toISOString().split('T')[0]}.pdf`;
-      await saveBlobAsPdf(blob, fileName);
-      
-      console.log('Simple PDF saved successfully');
-    } catch (error: any) {
-      console.error('Error generating simple PDF:', error);
-      alert('Failed to generate PDF. Please check the console for details.');
+      alert('Failed to generate PDF. Please try again.');
     } finally {
       setIsGeneratingPDF(false);
     }
@@ -606,7 +525,7 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({
           .font-semibold { font-weight: 600; }
           .font-bold { font-weight: bold; }
           .text-sm { font-size: 14px; }
-          .text-lg { font size: 18px; }
+          .text-lg { font-size: 18px; }
           .text-xl { font-size: 20px; }
           .text-2xl { font-size: 24px; }
           .text-3xl { font-size: 30px; }
@@ -658,61 +577,6 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({
     URL.revokeObjectURL(url);
   };
 
-  // Browser print function as ultimate fallback
-  const handlePrint = () => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      alert('Please allow popups to print the report');
-      return;
-    }
-    
-    const content = document.getElementById('pdf-content');
-    if (!content) {
-      alert('No content to print');
-      return;
-    }
-    
-    const printContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Preventive Maintenance Report</title>
-        <style>
-          @media print {
-            body { margin: 0; font-family: Arial, sans-serif; }
-            .no-print { display: none !important; }
-          }
-          body { font-family: Arial, sans-serif; line-height: 1.6; }
-          table { width: 100%; border-collapse: collapse; }
-          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-          th { background-color: #f2f2f2; }
-          .text-green-600 { color: #16a34a; }
-          .text-yellow-600 { color: #ca8a04; }
-          .text-red-600 { color: #dc2626; }
-          .text-blue-600 { color: #2563eb; }
-          .text-orange-600 { color: #ea580c; }
-          .text-gray-600 { color: #4b5563; }
-        </style>
-      </head>
-      <body>
-        ${content.innerHTML}
-      </body>
-      </html>
-    `;
-    
-    printWindow.document.write(printContent);
-    printWindow.document.close();
-    
-    // Wait for content to load then print
-    printWindow.onload = () => {
-      printWindow.print();
-      // Close window after print dialog
-      printWindow.onafterprint = () => {
-        printWindow.close();
-      };
-    };
-  };
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -742,7 +606,7 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({
           </div>
           <div className="flex space-x-3">
             <button
-              onClick={generatePDFReact}
+              onClick={generatePDF}
               disabled={isGeneratingPDF}
               className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -759,23 +623,8 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({
               )}
             </button>
             <button
-              onClick={generateSimplePDF}
-              disabled={isGeneratingPDF}
-              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              Simple PDF
-            </button>
-            <button
-              onClick={handlePrint}
-              className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-            >
-              <Printer className="h-4 w-4 mr-2" />
-              Print
-            </button>
-            <button
               onClick={downloadHTML}
-              className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
             >
               <Download className="h-4 w-4 mr-2" />
               Download HTML
@@ -783,57 +632,6 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({
           </div>
         </div>
 
-        {/* Image/PDF Options */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Image Format</label>
-            <select
-              value={imageFormat}
-              onChange={(e) => setImageFormat(e.target.value as 'PNG' | 'JPEG')}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="PNG">PNG (sharp, larger)</option>
-              <option value="JPEG">JPEG (smaller)</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Image Quality</label>
-            <input
-              type="range"
-              min={0.5}
-              max={1}
-              step={0.02}
-              value={imgQuality}
-              onChange={(e) => setImgQuality(parseFloat(e.target.value))}
-              className="w-full"
-            />
-            <div className="text-xs text-gray-500 mt-1">{Math.round(imgQuality * 100)}%</div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Canvas Scale</label>
-            <input
-              type="range"
-              min={1}
-              max={3}
-              step={0.5}
-              value={canvasScale}
-              onChange={(e) => setCanvasScale(parseFloat(e.target.value))}
-              className="w-full"
-            />
-            <div className="text-xs text-gray-500 mt-1">{canvasScale.toFixed(1)}x</div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">PDF Margin (mm)</label>
-            <input
-              type="number"
-              min={0}
-              max={20}
-              value={marginMm}
-              onChange={(e) => setMarginMm(parseInt(e.target.value || '0', 10))}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-        </div>
         {/* Show applied filters */}
         {initialFilters && (
           <div className="mb-6 p-4 bg-blue-50 rounded-lg">
@@ -866,7 +664,7 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({
           </div>
 
           <div>
-            <label className="block text sm font-medium text-gray-700 mb-2">Override Frequency Filter</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Override Frequency Filter</label>
             <select
               value={filterFrequency}
               onChange={(e) => setFilterFrequency(e.target.value)}
@@ -931,6 +729,21 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({
               className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+        </div>
+
+        {/* Filter by Topic */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Topic</label>
+          <select
+            value={filterTopic}
+            onChange={(e) => setFilterTopic(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">All Topics</option>
+            {topics.map(topic => (
+              <option key={topic.id} value={topic.id}>{topic.title}</option>
+            ))}
+          </select>
         </div>
 
         {/* Options */}
@@ -1241,7 +1054,8 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({
        <p className="text-gray-600">
          {maintenanceData.length === 0 
            ? "No maintenance data is available. Please ensure maintenance records are loaded."
-           : "Try adjusting your filters to see more results."}
+           : "Try adjusting your filters to see more results."
+         }
        </p>
      </div>
    )}

@@ -32,9 +32,11 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { fetchImageAsDataURL } from '@/app/lib/imageUtils';
 import { pdf } from '@react-pdf/renderer';
-import { saveAs } from 'file-saver';
+import * as ReactPDF from '@react-pdf/renderer';
+// @ts-ignore
 import MaintenancePDFDocument from '@/app/components/pdf/MaintenancePDFDocument';
 import { saveBlobAsPdf, generatePdfWithRetry } from '@/app/lib/pdfUtils';
+import { generatePdfBlob } from '@/app/lib/pdfRenderer';
 
 interface InitialFilters {
   status: string;
@@ -417,15 +419,36 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({
       console.log('Filtered data count:', filteredData.length);
 
       const blob = await generatePdfWithRetry(async () => {
-        return await pdf(
-          <MaintenancePDFDocument
-            data={filteredData as any}
-            appliedFilters={appliedFilters}
-            includeDetails={includeDetails}
-            includeImages={includeImages}
-            title={"Preventive Maintenance Report"}
-          />
-        ).toBlob();
+        try {
+          // Create the PDF document component
+          const pdfDocument = (
+            <MaintenancePDFDocument
+              data={filteredData as any}
+              appliedFilters={appliedFilters}
+              includeDetails={includeDetails}
+              includeImages={includeImages}
+              title={"Preventive Maintenance Report"}
+            />
+          );
+          
+          console.log('PDF document component created, generating blob...');
+          
+          // Use our wrapper function that handles import issues
+          const blob = await generatePdfBlob(pdfDocument);
+          console.log('Blob generated successfully');
+          
+          return blob;
+        } catch (error: any) {
+          console.error('Error generating PDF:', error);
+          console.error('Error stack:', error?.stack);
+          
+          // If it's still the 'r is not a function' error, provide helpful message
+          if (error?.message?.includes('is not a function')) {
+            throw new Error('PDF library initialization error. This may be due to a bundling issue. Please try refreshing the page.');
+          }
+          
+          throw error;
+        }
       });
 
       console.log('PDF blob generated successfully, size:', blob.size);
@@ -448,14 +471,12 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({
       
       if (error?.message?.includes('Font')) {
         errorMessage += 'Font loading error. The PDF fonts may not be available. ';
-      } else if (error?.message?.includes('blob') || error?.message?.includes('Blob')) {
-        errorMessage += 'Failed to create PDF file. ';
-      } else if (error?.message?.includes('saveBlobAsPdf')) {
-        errorMessage += 'Failed to save PDF file. ';
-      } else if (error?.message?.includes('%PDF')) {
-        errorMessage += 'Generated file is not a valid PDF. ';
+      } else if (error?.message?.includes('Network')) {
+        errorMessage += 'Network error. Please check your internet connection. ';
+      } else if (error?.message?.includes('not a function')) {
+        errorMessage += 'Internal error: ' + error.message + '. ';
       } else {
-        errorMessage += typeof error?.message === 'string' ? error.message : 'Unknown error occurred. ';
+        errorMessage += error?.message || 'Unknown error. ';
       }
       
       errorMessage += 'Please try again later.';

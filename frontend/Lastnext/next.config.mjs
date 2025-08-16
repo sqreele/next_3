@@ -61,10 +61,26 @@ const nextConfig = {
   },
   
   // Ensure webpack resolves the '@' alias to the project root
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     config.resolve = config.resolve || {};
     config.resolve.alias = config.resolve.alias || {};
     config.resolve.alias['@'] = projectRoot;
+    
+    // Handle @react-pdf/renderer for client-side rendering
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+        child_process: false,
+        process: false,
+      };
+    }
+    
+    // Ensure proper module resolution for @react-pdf/renderer
+    config.resolve.extensions = [...(config.resolve.extensions || []), '.js', '.jsx', '.ts', '.tsx'];
+    
     return config;
   },
   

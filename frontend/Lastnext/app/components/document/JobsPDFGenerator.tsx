@@ -17,8 +17,6 @@ interface JobsPDFDocumentProps {
   filter: TabValue;
   selectedProperty?: string | null;
   propertyName?: string;
-  topics: any[];
-  onTopicChange: (topicId: string) => void;
 }
 
 const styles = StyleSheet.create({
@@ -102,7 +100,7 @@ const styles = StyleSheet.create({
   }
 });
 
-const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({ jobs, filter, selectedProperty, propertyName, topics, onTopicChange }) => {
+const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({ jobs, filter, selectedProperty, propertyName }) => {
   const filteredJobs = jobs.filter((job) => {
     if (!selectedProperty) return true;
 

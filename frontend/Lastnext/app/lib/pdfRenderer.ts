@@ -1,62 +1,39 @@
-// Wrapper for @react-pdf/renderer to handle import issues
-let pdfFunction: any = null;
-let importError: Error | null = null;
+"use client";
 
-// Try to import pdf function with multiple fallbacks
-async function ensurePdfFunction() {
-  if (pdfFunction) return pdfFunction;
-  if (importError) throw importError;
+// Wrapper for @react-pdf/renderer to handle import issues robustly
+import * as ReactPDF from '@react-pdf/renderer';
 
-  try {
-    // First try: named import
-    const { pdf } = await import('@react-pdf/renderer');
-    if (typeof pdf === 'function') {
-      pdfFunction = pdf;
-      return pdfFunction;
-    }
-    
-    // Second try: full module import
-    const ReactPDF = await import('@react-pdf/renderer');
-    if (ReactPDF.pdf && typeof ReactPDF.pdf === 'function') {
-      pdfFunction = ReactPDF.pdf;
-      return pdfFunction;
-    }
-    
-    // Third try: default export
-    if ((ReactPDF as any).default?.pdf && typeof (ReactPDF as any).default.pdf === 'function') {
-      pdfFunction = (ReactPDF as any).default.pdf;
-      return pdfFunction;
-    }
-    
-    // Fourth try: check all exports
-    const availableExports = Object.keys(ReactPDF);
-    console.log('Available exports from @react-pdf/renderer:', availableExports);
-    
-    // Look for pdf function in any export
-    for (const key of availableExports) {
-      if (key.toLowerCase().includes('pdf') && typeof (ReactPDF as any)[key] === 'function') {
-        pdfFunction = (ReactPDF as any)[key];
-        console.log(`Found pdf function as: ${key}`);
-        return pdfFunction;
-      }
-    }
-    
-    throw new Error(`Could not find pdf function in @react-pdf/renderer. Available exports: ${availableExports.join(', ')}`);
-  } catch (error) {
-    importError = error as Error;
-    console.error('Failed to import @react-pdf/renderer:', error);
-    throw error;
+let cachedPdfFunction: ((element: React.ReactElement) => any) | null = null;
+
+function getPdfFunction(): (element: React.ReactElement) => any {
+  if (cachedPdfFunction) return cachedPdfFunction;
+
+  // Prefer named export
+  const namedPdf: unknown = (ReactPDF as any).pdf;
+  if (typeof namedPdf === 'function') {
+    cachedPdfFunction = namedPdf as (element: React.ReactElement) => any;
+    return cachedPdfFunction;
   }
+
+  // Fallback: some bundlers nest under default
+  const defaultPdf: unknown = (ReactPDF as any)?.default?.pdf;
+  if (typeof defaultPdf === 'function') {
+    cachedPdfFunction = defaultPdf as (element: React.ReactElement) => any;
+    return cachedPdfFunction;
+  }
+
+  const availableExports = Object.keys(ReactPDF || {});
+  throw new Error(`@react-pdf/renderer 'pdf' export not found. Available exports: ${availableExports.join(', ')}`);
 }
 
 export async function generatePdfBlob(documentElement: React.ReactElement): Promise<Blob> {
-  const pdf = await ensurePdfFunction();
+  const pdf = getPdfFunction();
   const instance = pdf(documentElement);
-  
+
   if (!instance || typeof instance.toBlob !== 'function') {
     throw new Error('PDF instance does not have toBlob method');
   }
-  
+
   return await instance.toBlob();
 }
 

@@ -20,7 +20,9 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 20,
-    borderBottom: '2px solid #000000',
+    borderBottomWidth: 2,
+    borderBottomColor: '#000000',
+    borderBottomStyle: 'solid',
     paddingBottom: 15,
   },
   title: {
@@ -42,7 +44,9 @@ const styles = StyleSheet.create({
   jobContainer: {
     marginBottom: 20,
     padding: 15,
-    border: '1px solid #cccccc',
+    borderWidth: 1,
+    borderColor: '#cccccc',
+    borderStyle: 'solid',
     backgroundColor: '#fafafa',
   },
   jobHeader: {
@@ -50,7 +54,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 8,
     color: '#000000',
-    borderBottom: '1px solid #eeeeee',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eeeeee',
+    borderBottomStyle: 'solid',
     paddingBottom: 4,
   },
   jobRow: {
@@ -86,7 +92,9 @@ const styles = StyleSheet.create({
     marginTop: 8,
     padding: 8,
     backgroundColor: '#f9f9f9',
-    border: '1px solid #eeeeee',
+    borderWidth: 1,
+    borderColor: '#eeeeee',
+    borderStyle: 'solid',
   },
   pageNumber: {
     position: 'absolute',

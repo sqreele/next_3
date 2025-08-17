@@ -17,8 +17,6 @@ interface JobsPDFDocumentProps {
   filter: TabValue;
   selectedProperty?: string | null;
   propertyName?: string;
-  topics: any[];
-  onTopicChange: (topicId: string) => void;
 }
 
 const styles = StyleSheet.create({
@@ -48,17 +46,17 @@ const styles = StyleSheet.create({
     borderColor: '#eee',
     paddingVertical: 8,
     paddingHorizontal: 5,
-    minHeight: 80, // ลดความสูงขั้นต่ำ
-    maxHeight: 120, // กำหนดความสูงสูงสุด
+    minHeight: 80,
+    maxHeight: 120,
     marginBottom: 5,
-    break: false, // ป้องกันการแบ่งแถว
+    break: false,
   },
   imageColumn: {
-    width: '25%', // ลดขนาดรูป
+    width: '25%',
     marginRight: 10
   },
   infoColumn: {
-    width: '40%', // เพิ่มพื้นที่สำหรับข้อมูล
+    width: '40%',
     paddingRight: 8
   },
   dateColumn: {
@@ -66,18 +64,18 @@ const styles = StyleSheet.create({
   },
   jobImage: {
     width: '100%',
-    height: 60, // ลดความสูงรูป
+    height: 60,
     objectFit: 'cover'
   },
   label: {
-    fontSize: 8, // ลดขนาดฟอนต์
+    fontSize: 8,
     color: '#666',
     marginBottom: 1
   },
   value: {
-    fontSize: 8, // ลดขนาดฟอนต์
+    fontSize: 8,
     marginBottom: 3,
-    lineHeight: 1.2 // ลดระยะห่างบรรทัด
+    lineHeight: 1.2
   },
   statusBadge: {
     fontSize: 8,
@@ -93,16 +91,20 @@ const styles = StyleSheet.create({
     marginBottom: 2,
     lineHeight: 1.1
   },
-  // เพิ่ม style สำหรับข้อความที่อาจยาว
   truncatedText: {
     fontSize: 8,
     marginBottom: 3,
     lineHeight: 1.2,
-    maxLines: 2, // จำกัดจำนวนบรรทัด
+    maxLines: 2,
   }
 });
 
-const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({ jobs, filter, selectedProperty, propertyName, topics, onTopicChange }) => {
+const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({ 
+  jobs, 
+  filter, 
+  selectedProperty, 
+  propertyName 
+}) => {
   const filteredJobs = jobs.filter((job) => {
     if (!selectedProperty) return true;
 
@@ -112,19 +114,23 @@ const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({ jobs, filter, selecte
       )) || false;
   });
 
-  const formatDate = (dateString: string | null) => {
+  const formatDate = (dateString: string | null): string => {
     if (!dateString) return 'N/A';
 
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return 'Invalid Date';
+    }
   };
 
-  const getPriorityColor = (priority: string) => {
+  const getPriorityColor = (priority: string): string => {
     switch (priority) {
       case 'high': return '#F44336';
       case 'medium': return '#FF9800';
@@ -142,14 +148,20 @@ const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({ jobs, filter, selecte
     return 'User';
   };
 
-  // ฟังก์ชันตัดข้อความที่ยาวเกินไป
   const truncateText = (text: string, maxLength: number = 100): string => {
     if (!text) return '';
     return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
   };
 
-  // แบ่ง jobs เป็นกลุมๆ เพื่อป้องกันการตกหน้า
-  const jobsPerPage = 8; // จำนวน jobs ต่อหน้า
+  const getImageUrl = (imageUrl: string): string => {
+    if (imageUrl.startsWith('http')) {
+      return imageUrl;
+    }
+    return `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${imageUrl}`;
+  };
+
+  // Split jobs into pages
+  const jobsPerPage = 8;
   const pageGroups = [];
   for (let i = 0; i < filteredJobs.length; i += jobsPerPage) {
     pageGroups.push(filteredJobs.slice(i, i + jobsPerPage));
@@ -159,7 +171,7 @@ const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({ jobs, filter, selecte
     <Document>
       {pageGroups.map((jobGroup, pageIndex) => (
         <Page key={pageIndex} size="A4" style={styles.page}>
-          {/* แสดง header เฉพาะหน้าแรก */}
+          {/* Header on first page only */}
           {pageIndex === 0 && (
             <View style={styles.header}>
               <Text style={styles.headerText}>{propertyName || 'Unnamed Property'}</Text>
@@ -168,7 +180,7 @@ const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({ jobs, filter, selecte
             </View>
           )}
 
-          {/* แสดง page number สำหรับหน้าที่ 2 เป็นต้นไป */}
+          {/* Page number for subsequent pages */}
           {pageIndex > 0 && (
             <View style={{ marginBottom: 15, alignItems: 'center' }}>
               <Text style={styles.subHeaderText}>Page {pageIndex + 1}</Text>
@@ -179,26 +191,11 @@ const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({ jobs, filter, selecte
             <View key={job.job_id} style={styles.jobRow} wrap={false}>
               <View style={styles.imageColumn}>
                 {job.images && job.images.length > 0 ? (
-                  (() => {
-                    const imageUrl = job.images[0].image_url.startsWith('http') 
-                      ? job.images[0].image_url 
-                      : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${job.images[0].image_url}`;
-                    
-                    console.log('PDF Image URL:', {
-                      original: job.images[0].image_url,
-                      resolved: imageUrl,
-                      hasImages: !!job.images,
-                      imageCount: job.images?.length
-                    });
-                    
-                    return (
-                      <Image
-                        src={imageUrl}
-                        style={styles.jobImage}
-                        cache={false}
-                      />
-                    );
-                  })()
+                  <Image
+                    src={getImageUrl(job.images[0].image_url)}
+                    style={styles.jobImage}
+                    cache={false}
+                  />
                 ) : (
                   <View style={[styles.jobImage, { backgroundColor: '#f3f4f6', justifyContent: 'center', alignItems: 'center' }]}>
                     <Text style={{ fontSize: 6, color: '#9ca3af' }}>No Image</Text>

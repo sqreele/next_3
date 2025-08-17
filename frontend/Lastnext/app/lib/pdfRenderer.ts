@@ -30,7 +30,8 @@ export async function generatePdfBlob(documentElement: React.ReactElement): Prom
     
   } catch (error) {
     console.error('❌ Error in generatePdfBlob:', error);
-    throw new Error(`PDF generation failed: ${error.message}`);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(`PDF generation failed: ${errorMessage}`);
   }
 }
 

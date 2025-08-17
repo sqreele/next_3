@@ -108,16 +108,8 @@ const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({
   // Safe data validation
   const safeJobs = Array.isArray(jobs) ? jobs.filter(job => job && job.job_id) : [];
   
-  // Filter jobs safely
-  const filteredJobs = safeJobs.filter((job) => {
-    if (!selectedProperty) return true;
-    try {
-      return job.property_id === selectedProperty;
-    } catch (error) {
-      console.warn('Error filtering job:', error);
-      return false;
-    }
-  });
+  // Do not re-filter by property; jobs are already filtered by the UI
+  const filteredJobs = safeJobs;
 
   const formatDate = (dateString: string | null | undefined): string => {
     if (!dateString) return 'N/A';

@@ -172,8 +172,8 @@ export function determinePMStatus(item: PreventiveMaintenance): string {
 }
 
 // Enhanced helper to get image URL from various formats
-export function getImageUrl(image: MaintenanceImage | any | null | undefined): string | null {
-  if (!image) return null;
+export function getImageUrl(image: MaintenanceImage | any | null | undefined): string | undefined {
+  if (!image) return undefined;
   
   // First try to get direct URL property from various possible fields
   if (typeof image === 'object') {
@@ -200,7 +200,7 @@ export function getImageUrl(image: MaintenanceImage | any | null | undefined): s
       return image;
   }
   
-  return null;
+  return undefined;
 }
 
 // ✅ Fixed helper to safely get machine details

@@ -1,6 +1,9 @@
 // @ts-check
 import path from 'path'
 import { fileURLToPath } from 'url'
+import webpack from 'next/dist/compiled/webpack/webpack.js'
+import { createRequire } from 'module'
+const require = createRequire(import.meta.url)
 
 const projectRoot = path.dirname(fileURLToPath(import.meta.url))
 /**
@@ -74,8 +77,14 @@ const nextConfig = {
         net: false,
         tls: false,
         child_process: false,
-        process: false,
+        // Provide browser fallbacks required by @react-pdf/pdfkit chain
+        process: require.resolve('process/browser'),
+        stream: require.resolve('stream-browserify'),
+        buffer: require.resolve('buffer/'),
+        zlib: require.resolve('browserify-zlib'),
       };
+
+
     }
     
     // Ensure proper module resolution for @react-pdf/renderer

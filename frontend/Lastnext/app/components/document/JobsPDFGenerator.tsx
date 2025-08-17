@@ -49,8 +49,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
     minHeight: 80,
     maxHeight: 120,
-    marginBottom: 5,
-    break: false,
+    marginBottom: 5
   },
   imageColumn: {
     width: '25%',

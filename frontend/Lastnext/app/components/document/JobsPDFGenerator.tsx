@@ -17,6 +17,8 @@ interface JobsPDFDocumentProps {
   filter: TabValue;
   selectedProperty?: string | null;
   propertyName?: string;
+  topics: any[];
+  onTopicChange: (topicId: string) => void;
 }
 
 const styles = StyleSheet.create({
@@ -100,7 +102,7 @@ const styles = StyleSheet.create({
   }
 });
 
-const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({ jobs, filter, selectedProperty, propertyName }) => {
+const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({ jobs, filter, selectedProperty, propertyName, topics, onTopicChange }) => {
   const filteredJobs = jobs.filter((job) => {
     if (!selectedProperty) return true;
 
@@ -176,11 +178,31 @@ const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({ jobs, filter, selecte
           {jobGroup.map((job) => (
             <View key={job.job_id} style={styles.jobRow} wrap={false}>
               <View style={styles.imageColumn}>
-                {job.images && job.images.length > 0 && (
-                  <Image
-                    src={job.images[0].image_url}
-                    style={styles.jobImage}
-                  />
+                {job.images && job.images.length > 0 ? (
+                  (() => {
+                    const imageUrl = job.images[0].image_url.startsWith('http') 
+                      ? job.images[0].image_url 
+                      : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${job.images[0].image_url}`;
+                    
+                    console.log('PDF Image URL:', {
+                      original: job.images[0].image_url,
+                      resolved: imageUrl,
+                      hasImages: !!job.images,
+                      imageCount: job.images?.length
+                    });
+                    
+                    return (
+                      <Image
+                        src={imageUrl}
+                        style={styles.jobImage}
+                        cache={false}
+                      />
+                    );
+                  })()
+                ) : (
+                  <View style={[styles.jobImage, { backgroundColor: '#f3f4f6', justifyContent: 'center', alignItems: 'center' }]}>
+                    <Text style={{ fontSize: 6, color: '#9ca3af' }}>No Image</Text>
+                  </View>
                 )}
               </View>
 

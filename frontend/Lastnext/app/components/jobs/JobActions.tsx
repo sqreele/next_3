@@ -166,20 +166,10 @@ export default function JobActions({
       const propertyName = getPropertyName(selectedProperty);
       console.log('🏷️ Property name:', propertyName);
 
-      // Filter jobs for the selected property
-      const filteredJobs = selectedProperty 
-        ? jobs.filter(job => {
-            try {
-              return job.property_id === selectedProperty || 
-                     job.profile_image?.properties?.some?.(prop => String(prop.property_id) === selectedProperty);
-            } catch (error) {
-              console.warn('Error filtering job:', error);
-              return false;
-            }
-          })
-        : jobs;
+      // Use the jobs already filtered by the UI
+      const filteredJobs = jobs;
 
-      console.log('📋 Filtered jobs count:', filteredJobs.length);
+      console.log('📋 Exporting jobs count (from UI):', filteredJobs.length);
 
       if (filteredJobs.length === 0) {
         alert("No jobs found for the selected criteria.");

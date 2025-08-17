@@ -1,6 +1,7 @@
+"use client";
 // ./app/components/document/JobsPDFGenerator.tsx
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, Image, Font } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Image, Font } from '@/app/lib/pdfRenderer';
 import { Job, TabValue, FILTER_TITLES } from '@/app/lib/types';
 
 // ✅ Register Thai font (Sarabun)
@@ -94,8 +95,7 @@ const styles = StyleSheet.create({
   truncatedText: {
     fontSize: 8,
     marginBottom: 3,
-    lineHeight: 1.2,
-    maxLines: 2,
+    lineHeight: 1.2
   }
 });
 

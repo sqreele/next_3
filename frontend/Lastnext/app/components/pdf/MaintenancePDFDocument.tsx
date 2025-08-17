@@ -9,7 +9,7 @@ import {
   StyleSheet,
   Image,
   Font,
-} from '@react-pdf/renderer';
+} from '@/app/lib/pdfRenderer';
 import { 
   PreventiveMaintenance, 
   MachineDetails,

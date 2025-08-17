@@ -217,32 +217,34 @@ export default function JobActions({
       await saveBlobAsPdf(blob, filename);
       console.log('🎉 PDF saved successfully!');
 
-    } catch (error: any) {
+    } catch (error) {
       console.error("❌ PDF generation failed:", error);
-      console.error("📚 Error stack:", error.stack);
+      console.error("📚 Error stack:", error instanceof Error ? error.stack : 'No stack trace available');
       console.error("🔍 Error details:", {
-        message: error.message,
-        name: error.name,
-        cause: error.cause
+        message: error instanceof Error ? error.message : String(error),
+        name: error instanceof Error ? error.name : 'Unknown',
+        cause: error instanceof Error ? error.cause : undefined
       });
       
       let errorMessage = 'Failed to generate PDF. ';
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      const errorName = error instanceof Error ? error.name : 'Unknown';
       
       // More specific error detection
-      if (error?.message?.includes('pdf') || error?.name?.includes('PDF')) {
+      if (errorMsg.includes('pdf') || errorName.includes('PDF')) {
         errorMessage += 'PDF library error - check browser compatibility. ';
-      } else if (error?.message?.includes('toBlob') || error?.message?.includes('blob')) {
+      } else if (errorMsg.includes('toBlob') || errorMsg.includes('blob')) {
         errorMessage += 'PDF conversion error - try refreshing the page. ';
-      } else if (error?.message?.includes('empty') || error?.message?.includes('size')) {
+      } else if (errorMsg.includes('empty') || errorMsg.includes('size')) {
         errorMessage += 'No content generated - check job data. ';
-      } else if (error?.message?.includes('import') || error?.message?.includes('module')) {
+      } else if (errorMsg.includes('import') || errorMsg.includes('module')) {
         errorMessage += 'Module loading error - refresh and try again. ';
-      } else if (error?.message?.includes('function') || error?.name === 'TypeError') {
+      } else if (errorMsg.includes('function') || errorName === 'TypeError') {
         errorMessage += 'Library function error - check PDF renderer setup. ';
-      } else if (error?.message?.includes('network') || error?.message?.includes('fetch')) {
+      } else if (errorMsg.includes('network') || errorMsg.includes('fetch')) {
         errorMessage += 'Network error loading resources. ';
       } else {
-        errorMessage += `Technical error: ${error?.message || 'Unknown error'}. `;
+        errorMessage += `Technical error: ${errorMsg}. `;
       }
       
       errorMessage += '\n\nTroubleshooting:\n';
@@ -297,7 +299,8 @@ export default function JobActions({
       alert('✅ PDF library is working correctly! Test PDF downloaded.');
     } catch (error) {
       console.error('❌ PDF test failed:', error);
-      alert(`❌ PDF test failed: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`❌ PDF test failed: ${errorMessage}`);
     }
   };
 
@@ -577,6 +580,17 @@ export default function JobActions({
               <FileDown className="h-4 w-4" />
               {isGenerating ? "Generating..." : `Export PDF (${exportCount})`}
             </DropdownMenuItem>
+
+            {/* Debug button for mobile - remove in production */}
+            {process.env.NODE_ENV === 'development' && (
+              <>
+                <DropdownMenuSeparator className="bg-zinc-800 my-1" />
+                <DropdownMenuItem onClick={testPDFGeneration} className={menuItemClass}>
+                  <FileDown className="h-4 w-4" /> Test PDF
+                </DropdownMenuItem>
+              </>
+            )}
+
             <DropdownMenuSeparator className="bg-zinc-800 my-1" />
 
             <DropdownMenuItem onClick={handleRefresh} className={menuItemClass}>

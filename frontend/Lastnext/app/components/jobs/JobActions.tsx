@@ -1,14 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, FileDown, Filter, SortAsc, SortDesc, Building, Calendar, DoorOpen } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import CreateJobButton from "@/app/components/jobs/CreateJobButton";
-import JobsPDFDocument from "@/app/components/document/JobsPDFGenerator";
 import { useProperty } from "@/app/lib/PropertyContext";
 import { saveBlobAsPdf, generatePdfWithRetry } from "@/app/lib/pdfUtils";
-import { generatePdfBlob } from "@/app/lib/pdfRenderer";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -161,39 +159,145 @@ export default function JobActions({
 
     try {
       setIsGenerating(true);
+      console.log('🔄 Starting PDF generation...');
+      console.log('📊 Jobs available:', jobs.length);
+      console.log('🏢 Selected property:', selectedProperty);
+      
       const propertyName = getPropertyName(selectedProperty);
+      console.log('🏷️ Property name:', propertyName);
 
-      const blob = await generatePdfWithRetry(async () => {
-        const pdfDocument = (
-          <JobsPDFDocument
-            jobs={jobs}
-            filter={currentTab}
-            selectedProperty={selectedProperty}
-            propertyName={propertyName}
-          />
-        );
-        return await generatePdfBlob(pdfDocument);
+      // Filter jobs for the selected property
+      const filteredJobs = selectedProperty 
+        ? jobs.filter(job => {
+            try {
+              return job.property_id === selectedProperty || 
+                     job.profile_image?.properties?.some?.(prop => String(prop.property_id) === selectedProperty);
+            } catch (error) {
+              console.warn('Error filtering job:', error);
+              return false;
+            }
+          })
+        : jobs;
+
+      console.log('📋 Filtered jobs count:', filteredJobs.length);
+
+      if (filteredJobs.length === 0) {
+        alert("No jobs found for the selected criteria.");
+        return;
+      }
+
+      // Dynamic imports to avoid SSR issues
+      console.log('📦 Loading PDF modules...');
+      const { generatePdfBlob } = await import('@/app/lib/pdfRenderer');
+      const { default: JobsPDFDocument } = await import('@/app/components/document/JobsPDFGenerator');
+
+      console.log('📄 Creating PDF document component...');
+      const pdfDocument = React.createElement(JobsPDFDocument, {
+        jobs: filteredJobs,
+        filter: currentTab,
+        selectedProperty: selectedProperty,
+        propertyName: propertyName,
       });
 
+      console.log('⚙️ Generating PDF blob...');
+      const blob = await generatePdfBlob(pdfDocument);
+
+      if (!blob || blob.size === 0) {
+        throw new Error('Generated PDF is empty');
+      }
+
+      console.log('✅ PDF generated successfully, size:', blob.size, 'bytes');
+
+      // Save the PDF
       const date = format(new Date(), "yyyy-MM-dd");
-      const filename = `jobs-report-${date}.pdf`;
+      const cleanPropertyName = propertyName.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '-');
+      const filename = `jobs-report-${cleanPropertyName}-${date}.pdf`;
+      
+      console.log('💾 Saving PDF as:', filename);
       await saveBlobAsPdf(blob, filename);
+      console.log('🎉 PDF saved successfully!');
+
     } catch (error: any) {
-      console.error("Error generating PDF:", error);
+      console.error("❌ PDF generation failed:", error);
+      console.error("📚 Error stack:", error.stack);
+      console.error("🔍 Error details:", {
+        message: error.message,
+        name: error.name,
+        cause: error.cause
+      });
       
       let errorMessage = 'Failed to generate PDF. ';
-      if (error?.message?.includes('Font')) {
-        errorMessage += 'Font loading error. ';
-      } else if (error?.message?.includes('%PDF')) {
-        errorMessage += 'Invalid PDF format. ';
+      
+      // More specific error detection
+      if (error?.message?.includes('pdf') || error?.name?.includes('PDF')) {
+        errorMessage += 'PDF library error - check browser compatibility. ';
+      } else if (error?.message?.includes('toBlob') || error?.message?.includes('blob')) {
+        errorMessage += 'PDF conversion error - try refreshing the page. ';
+      } else if (error?.message?.includes('empty') || error?.message?.includes('size')) {
+        errorMessage += 'No content generated - check job data. ';
+      } else if (error?.message?.includes('import') || error?.message?.includes('module')) {
+        errorMessage += 'Module loading error - refresh and try again. ';
+      } else if (error?.message?.includes('function') || error?.name === 'TypeError') {
+        errorMessage += 'Library function error - check PDF renderer setup. ';
+      } else if (error?.message?.includes('network') || error?.message?.includes('fetch')) {
+        errorMessage += 'Network error loading resources. ';
       } else {
-        errorMessage += error?.message || 'Unknown error. ';
+        errorMessage += `Technical error: ${error?.message || 'Unknown error'}. `;
       }
-      errorMessage += ' Please try again later.';
+      
+      errorMessage += '\n\nTroubleshooting:\n';
+      errorMessage += '• Refresh the page and try again\n';
+      errorMessage += '• Check your internet connection\n';
+      errorMessage += '• Try with fewer jobs selected\n';
+      errorMessage += '• Use a different browser if issue persists\n';
+      errorMessage += '• Contact support for assistance';
       
       alert(errorMessage);
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  // Test PDF generation function (for debugging)
+  const testPDFGeneration = async () => {
+    try {
+      console.log('🧪 Testing PDF generation...');
+      
+      // Test 1: Import check
+      const { pdf, Document, Page, Text } = await import('@react-pdf/renderer');
+      console.log('✅ PDF library imported successfully');
+      
+      // Test 2: Simple document
+      const TestDoc = () => React.createElement(
+        Document,
+        {},
+        React.createElement(
+          Page,
+          { size: "A4", style: { padding: 30, fontFamily: 'Helvetica' } },
+          React.createElement(Text, { style: { fontSize: 16 } }, 'Test PDF Generation'),
+          React.createElement(Text, { style: { fontSize: 12, marginTop: 10 } }, `Generated at: ${new Date().toISOString()}`)
+        )
+      );
+
+      // Test 3: PDF generation
+      const instance = pdf(React.createElement(TestDoc));
+      const blob = await instance.toBlob();
+      console.log('✅ Simple PDF generated successfully, size:', blob.size);
+      
+      // Download test PDF
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'test-pdf.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      alert('✅ PDF library is working correctly! Test PDF downloaded.');
+    } catch (error) {
+      console.error('❌ PDF test failed:', error);
+      alert(`❌ PDF test failed: ${error.message}`);
     }
   };
 
@@ -353,6 +457,18 @@ export default function JobActions({
           <FileDown className="h-4 w-4" />
           {isGenerating ? "Generating..." : `Export (${exportCount})`}
         </Button>
+
+        {/* Debug button - remove in production */}
+        {process.env.NODE_ENV === 'development' && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={testPDFGeneration}
+            className={buttonClass}
+          >
+            Test PDF
+          </Button>
+        )}
 
         <CreateJobButton onJobCreated={handleRefresh} propertyId={selectedProperty ?? ""} />
 

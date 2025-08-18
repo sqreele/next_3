@@ -85,6 +85,7 @@ const nextConfig = {
         zlib: require.resolve('browserify-zlib'),
       };
 
+      // Note: ProvidePlugin caused issues in this environment; using runtime shims instead
 
     }
     

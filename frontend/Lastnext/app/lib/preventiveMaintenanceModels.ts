@@ -1,5 +1,6 @@
 // Type definitions for Preventive Maintenance module
 
+import { fixImageUrl } from './utils/image-utils';
 // Topic definition
 export interface Topic {
   id: number;
@@ -179,14 +180,14 @@ export function getImageUrl(image: MaintenanceImage | any | null | undefined): s
   if (typeof image === 'object') {
       // Check various possible URL fields
       if ('image_url' in image && image.image_url) {
-          return image.image_url;
+          return fixImageUrl(image.image_url) || undefined;
       }
       if ('url' in image && image.url) {
-          return image.url;
+          return fixImageUrl(image.url) || undefined;
       }
       if ('path' in image && image.path) {
           const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://pcms.live';
-          return `${apiUrl}${image.path}`;
+          return fixImageUrl(`${apiUrl}${image.path}`) || undefined;
       }
       
       // If no direct URL but we have an ID, construct URL
@@ -197,7 +198,7 @@ export function getImageUrl(image: MaintenanceImage | any | null | undefined): s
   
   // If image is just a string URL
   if (typeof image === 'string') {
-      return image;
+      return fixImageUrl(image) || undefined;
   }
   
   return undefined;

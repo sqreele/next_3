@@ -127,37 +127,22 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({ initi
   // Image processing
   const convertImageToBase64 = useCallback(async (imageUrl: string): Promise<string> => {
     try {
-      return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        
-        img.onload = () => {
-          try {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            
-            canvas.width = img.naturalWidth;
-            canvas.height = img.naturalHeight;
-            
-            if (ctx) {
-              ctx.drawImage(img, 0, 0);
-              const dataURL = canvas.toDataURL('image/jpeg', 0.8);
-              resolve(dataURL);
-            } else {
-              resolve(imageUrl);
-            }
-          } catch (error) {
-            console.error('Error drawing image to canvas:', error);
-            resolve(imageUrl);
-          }
-        };
-        
-        img.onerror = () => {
-          console.error('Error loading image:', imageUrl);
-          resolve(imageUrl);
-        };
-        
-        img.src = imageUrl;
+      // Use fetch + FileReader to avoid canvas tainting issues
+      const response = await fetch(imageUrl, { cache: 'no-store' });
+      if (!response.ok) {
+        console.warn('Image fetch failed:', imageUrl, response.status, response.statusText);
+        return imageUrl;
+      }
+      const blob = await response.blob();
+      if (!blob.type.startsWith('image/')) {
+        console.warn('Fetched non-image content for', imageUrl, 'got', blob.type);
+        return imageUrl;
+      }
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => resolve(imageUrl);
+        reader.readAsDataURL(blob);
       });
     } catch (error) {
       console.error('Error in convertImageToBase64:', error);
@@ -293,7 +278,7 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({ initi
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
-        allowTaint: true,
+        allowTaint: false,
         backgroundColor: '#ffffff',
         logging: false,
         imageTimeout: 30000,

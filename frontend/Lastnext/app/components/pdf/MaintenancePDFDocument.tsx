@@ -628,16 +628,24 @@ const hasImages = (item: PreventiveMaintenanceWithImages): boolean => {
   return getBeforeImages(item).length > 0 || getAfterImages(item).length > 0;
 };
 
-// Only allow safe image URLs to avoid mixed-content/CORS failures
+// Resolve image URLs to safe, same-origin URLs (proxy external images)
 const getSafeImageUrl = (url?: string): string | undefined => {
   if (!url) return undefined;
+  // Allow data URLs directly
+  if (url.startsWith('data:')) return url;
   try {
-    const parsed = new URL(url);
-    if (parsed.protocol === 'https:') return url;
-    return undefined;
+    const parsed = new URL(url, typeof window !== 'undefined' ? window.location.origin : 'https://pcms.live');
+    // Same-origin or relative path can be used directly
+    const isSameOrigin = typeof window !== 'undefined'
+      ? parsed.origin === window.location.origin
+      : parsed.origin.endsWith('pcms.live');
+    if (isSameOrigin || url.startsWith('/')) return parsed.pathname.startsWith('/') ? parsed.toString() : `/${parsed.toString()}`;
+    // Otherwise, proxy through our own origin to satisfy CSP connect-src
+    return `/api/proxy-image?url=${encodeURIComponent(parsed.toString())}`;
   } catch {
+    // For non-URL strings, if it's a relative path, keep as is
     if (url.startsWith('/')) return url;
-    return undefined;
+    return `/api/proxy-image?url=${encodeURIComponent(url)}`;
   }
 };
 

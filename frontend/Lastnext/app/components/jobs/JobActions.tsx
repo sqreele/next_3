@@ -153,7 +153,7 @@ export default function JobActions({
 
   const handleGeneratePDF = async () => {
     if (!jobs.length) {
-      alert("No jobs available to generate a PDF.");
+      alert("No job files available to generate a PDF.");
       return;
     }
 
@@ -172,7 +172,7 @@ export default function JobActions({
       console.log('📋 Exporting jobs count (from UI):', filteredJobs.length);
 
       if (filteredJobs.length === 0) {
-        alert("No jobs found for the selected criteria.");
+        alert("No job files found for the selected criteria.");
         return;
       }
 

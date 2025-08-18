@@ -1,18 +1,20 @@
 "use client";
 
 // Runtime shims for browser env required by @react-pdf/pdfkit chain
-// Guarded to avoid SSR usage
+// Guarded to avoid SSR usage. Use ESM-friendly imports instead of require.
+import processShim from 'process';
+import { Buffer as BufferShim } from 'buffer';
+
 if (typeof window !== 'undefined') {
   // @ts-ignore
   if (typeof (window as any).process === 'undefined') {
-    // Lazy require to keep bundle lean
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    (window as any).process = require('process/browser');
+    // @ts-ignore
+    (window as any).process = processShim;
   }
   // @ts-ignore
   if (typeof (window as any).Buffer === 'undefined') {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    (window as any).Buffer = require('buffer').Buffer;
+    // @ts-ignore
+    (window as any).Buffer = BufferShim;
   }
   // Some libs reference global
   // @ts-ignore

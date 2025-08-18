@@ -83,6 +83,12 @@ const nextConfig = {
         stream: require.resolve('stream-browserify'),
         buffer: require.resolve('buffer/'),
         zlib: require.resolve('browserify-zlib'),
+        util: require.resolve('util/'),
+        events: require.resolve('events/'),
+        assert: require.resolve('assert/'),
+        path: require.resolve('path-browserify'),
+        os: require.resolve('os-browserify/browser'),
+        crypto: require.resolve('crypto-browserify'),
       };
 
       // Note: ProvidePlugin caused issues in this environment; using runtime shims instead

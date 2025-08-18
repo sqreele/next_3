@@ -190,7 +190,7 @@ export default function JobActions({
       });
 
       console.log('⚙️ Generating PDF blob...');
-      const blob = await generatePdfBlob(pdfDocument);
+      const blob = await generatePdfWithRetry(() => generatePdfBlob(pdfDocument), 3);
 
       if (!blob || blob.size === 0) {
         throw new Error('Generated PDF is empty');

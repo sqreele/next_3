@@ -1,8 +1,10 @@
+// ./app/components/document/JobsPDFGenerator.tsx
 "use client";
 // ./app/components/document/JobsPDFGenerator.tsx
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet } from '@/app/lib/pdfRenderer';
+import { Document, Page, Text, View, StyleSheet, Image } from '@/app/lib/pdfRenderer';
 import { Job, TabValue, FILTER_TITLES } from '@/app/lib/types';
+import { fixImageUrl } from '@/app/lib/utils/image-utils';
 
 interface JobsPDFDocumentProps {
   jobs: Job[];
@@ -96,6 +98,33 @@ const styles = StyleSheet.create({
     borderColor: '#eeeeee',
     borderStyle: 'solid',
   },
+  imageSection: {
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#eeeeee',
+    borderTopStyle: 'solid',
+  },
+  imageRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 6,
+    gap: 8,
+  },
+  jobImage: {
+    width: '48%',
+    height: 120,
+    borderWidth: 1,
+    borderColor: '#dddddd',
+    borderStyle: 'solid',
+    backgroundColor: '#ffffff',
+  },
+  imagesTitle: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#444444',
+    marginTop: 6,
+  },
   pageNumber: {
     position: 'absolute',
     bottom: 20,
@@ -118,6 +147,40 @@ const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({
   
   // Do not re-filter by property; jobs are already filtered by the UI
   const filteredJobs = safeJobs;
+
+  // Convert image URL to safe same-origin path for PDF fetch
+  const getSafeImageUrl = (url?: string): string | undefined => {
+    if (!url) return undefined;
+    if (url.startsWith('data:')) return url;
+    try {
+      const fixed = fixImageUrl(url) || url;
+      const parsed = new URL(fixed, typeof window !== 'undefined' ? window.location.origin : 'https://pcms.live');
+      const isSameOrigin = typeof window !== 'undefined' ? parsed.origin === window.location.origin : parsed.origin.endsWith('pcms.live');
+      if (isSameOrigin || fixed.startsWith('/')) return parsed.toString();
+      return `/api/proxy-image?url=${encodeURIComponent(parsed.toString())}`;
+    } catch {
+      if (url.startsWith('/')) return url;
+      return `/api/proxy-image?url=${encodeURIComponent(url)}`;
+    }
+  };
+
+  const getJobImageUrls = (job: Job): string[] => {
+    const urls: string[] = [];
+    if (Array.isArray(job.images)) {
+      for (const img of job.images) {
+        if (img?.image_url) urls.push(img.image_url);
+      }
+    }
+    if (Array.isArray(job.image_urls)) {
+      for (const u of job.image_urls) {
+        if (u) urls.push(u);
+      }
+    }
+    const unique = Array.from(new Set(urls));
+    return unique
+      .map(u => getSafeImageUrl(u))
+      .filter((u): u is string => !!u);
+  };
 
   const formatDate = (dateString: string | null | undefined): string => {
     if (!dateString) return 'N/A';
@@ -297,6 +360,21 @@ const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({
                     </Text>
                   </View>
                 )}
+
+                {(() => {
+                  const imageUrls = getJobImageUrls(job).slice(0, 2);
+                  if (imageUrls.length === 0) return null;
+                  return (
+                    <View style={styles.imageSection}>
+                      <Text style={styles.imagesTitle}>Images</Text>
+                      <View style={styles.imageRow}>
+                        {imageUrls.map((src, i) => (
+                          <Image key={i} src={src} style={styles.jobImage} cache={false} />
+                        ))}
+                      </View>
+                    </View>
+                  );
+                })()}
               </View>
             );
           })}

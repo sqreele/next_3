@@ -103,6 +103,11 @@ const nextConfig = {
         source: '/api/auth/:path*',
         destination: '/api/auth/:path*',
       },
+      // Ensure internal image proxy stays on Next.js
+      {
+        source: '/api/proxy-image',
+        destination: '/api/proxy-image',
+      },
       // Pass-through for already versioned API calls
       {
         source: '/api/v1/:path*',

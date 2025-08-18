@@ -1,5 +1,27 @@
 "use client";
 
+// Runtime shims for browser env required by @react-pdf/pdfkit chain
+// Guarded to avoid SSR usage
+if (typeof window !== 'undefined') {
+  // @ts-ignore
+  if (typeof (window as any).process === 'undefined') {
+    // Lazy require to keep bundle lean
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    (window as any).process = require('process/browser');
+  }
+  // @ts-ignore
+  if (typeof (window as any).Buffer === 'undefined') {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    (window as any).Buffer = require('buffer').Buffer;
+  }
+  // Some libs reference global
+  // @ts-ignore
+  if (typeof (window as any).global === 'undefined') {
+    // @ts-ignore
+    (window as any).global = window as any;
+  }
+}
+
 // Fixed wrapper for @react-pdf/renderer
 import { pdf } from '@react-pdf/renderer';
 

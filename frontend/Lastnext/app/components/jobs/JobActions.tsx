@@ -183,6 +183,8 @@ export default function JobActions({
         filter: currentTab,
         selectedProperty: selectedProperty,
         propertyName: propertyName,
+        // Hint PDF doc to convert/normalize any external images internally
+        includeImages: true,
       });
 
       console.log('⚙️ Generating PDF blob...');

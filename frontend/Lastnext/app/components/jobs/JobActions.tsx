@@ -253,44 +253,22 @@ export default function JobActions({
   // Test PDF generation function (for debugging)
   const testPDFGeneration = async () => {
     try {
-      console.log('🧪 Testing PDF generation...');
+      console.log('🧪 Running comprehensive PDF test...');
       
-      // Test 1: Import check
-      const { pdf, Document, Page, Text } = await import('@react-pdf/renderer');
-      console.log('✅ PDF library imported successfully');
+      // Run the test
+      const { testPdfGeneration } = await import('@/app/lib/testPdf');
+      const result = await testPdfGeneration();
       
-      // Test 2: Simple document
-      const TestDoc = () => React.createElement(
-        Document,
-        {},
-        React.createElement(
-          Page,
-          { size: "A4", style: { padding: 30, fontFamily: 'Helvetica' } },
-          React.createElement(Text, { style: { fontSize: 16 } }, 'Test PDF Generation'),
-          React.createElement(Text, { style: { fontSize: 12, marginTop: 10 } }, `Generated at: ${new Date().toISOString()}`)
-        )
-      );
-
-      // Test 3: PDF generation
-      const instance = pdf(React.createElement(TestDoc));
-      const blob = await instance.toBlob();
-      console.log('✅ Simple PDF generated successfully, size:', blob.size);
-      
-      // Download test PDF
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'test-pdf.pdf';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      
-      alert('✅ PDF library is working correctly! Test PDF downloaded.');
+      if (result.success) {
+        alert(`✅ PDF test passed! Generated ${result.blobSize} bytes`);
+      } else {
+        console.error('❌ PDF test failed:', result);
+        alert(`❌ PDF test failed: ${result.error}\n\nCheck console for details.`);
+      }
     } catch (error) {
-      console.error('❌ PDF test failed:', error);
+      console.error('❌ Test execution failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      alert(`❌ PDF test failed: ${errorMessage}`);
+      alert(`❌ Test execution failed: ${errorMessage}`);
     }
   };
 

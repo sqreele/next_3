@@ -327,7 +327,7 @@ const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({
               {propertyName ? `Property: ${propertyName}` : 'All Properties'}
             </Text>
           </View>
-          <Text style={styles.noDataMessage}>No job files found for the selected criteria.</Text>
+          <Text style={styles.noDataMessage}>No jobs found for the selected criteria.</Text>
         </Page>
       </Document>
     );
@@ -424,17 +424,13 @@ const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({
                       const imageExtension = cleanUrl.split('.').pop()?.toLowerCase();
                       const supportedFormats = ['jpg', 'jpeg', 'png', 'gif'];
                       if (imageExtension && !supportedFormats.includes(imageExtension)) {
-                        return (
-                          <View style={[styles.jobImage, { backgroundColor: '#f3f4f6', justifyContent: 'center', alignItems: 'center' }]}>
-                            <Text style={{ fontSize: 8, color: '#ef4444', textAlign: 'center' }}>
-                              {`Unsupported format: ${imageExtension.toUpperCase()}`}
-                            </Text>
-                            <Text style={{ fontSize: 6, color: '#9ca3af', textAlign: 'center' }}>
-                              Convert to JPEG/PNG
-                            </Text>
-                          </View>
-                        );
+                        // Unsupported extensions: route via proxy anyway; upstream may still return a compatible Content-Type
+                        imageUrl = `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
                       }
+                    }
+
+                    if (imageUrl && imageUrl.startsWith('http')) {
+                      imageUrl = `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
                     }
                     
                     return (

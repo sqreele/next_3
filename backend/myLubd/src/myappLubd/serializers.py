@@ -98,7 +98,7 @@ class JobImageSerializer(serializers.ModelSerializer):
         fields = ['id', 'image_url', 'uploaded_by', 'uploaded_at']
 
     def get_image_url(self, obj):
-        """Return the absolute URL for the WebP image."""
+        """Return the absolute URL for the image."""
         if obj.image:
             return self.context['request'].build_absolute_uri(obj.image.url)
         return None

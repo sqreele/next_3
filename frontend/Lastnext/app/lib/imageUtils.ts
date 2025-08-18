@@ -263,10 +263,10 @@ export interface MaintenanceImage {
   export const processImageForPDF = async (file: File): Promise<string> => {
     // Validate file
     const maxSize = 10 * 1024 * 1024; // 10MB
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
     
     if (!allowedTypes.includes(file.type.toLowerCase())) {
-      throw new Error(`Invalid file type: ${file.type}. Please upload JPEG, PNG, or WebP images.`);
+      throw new Error(`Invalid file type: ${file.type}. Please upload JPEG or PNG images.`);
     }
     
     if (file.size > maxSize) {

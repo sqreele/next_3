@@ -152,10 +152,7 @@ export default function JobActions({
   };
 
   const handleGeneratePDF = async () => {
-    if (!jobs.length) {
-      alert("No job files available to generate a PDF.");
-      return;
-    }
+    // Proceed even if there are no jobs; the PDF will render a friendly "no data" page.
 
     try {
       setIsGenerating(true);
@@ -172,8 +169,7 @@ export default function JobActions({
       console.log('📋 Exporting jobs count (from UI):', filteredJobs.length);
 
       if (filteredJobs.length === 0) {
-        alert("No job files found for the selected criteria.");
-        return;
+        console.log('ℹ️ No jobs match the selected criteria; proceeding to generate an empty report.');
       }
 
       // Dynamic imports to avoid SSR issues

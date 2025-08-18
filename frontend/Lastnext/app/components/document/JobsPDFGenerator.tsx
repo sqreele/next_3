@@ -327,7 +327,7 @@ const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({
               {propertyName ? `Property: ${propertyName}` : 'All Properties'}
             </Text>
           </View>
-          <Text style={styles.noDataMessage}>No job files found for the selected criteria.</Text>
+          <Text style={styles.noDataMessage}>No jobs found for the selected criteria.</Text>
         </Page>
       </Document>
     );

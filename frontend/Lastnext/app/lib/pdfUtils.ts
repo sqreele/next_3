@@ -13,13 +13,54 @@ export const withPdfContentType = (blob: Blob): Blob => {
 };
 
 export const saveBlobAsPdf = async (blob: Blob, filename: string): Promise<void> => {
-  const { saveAs } = await import('file-saver');
   const typedBlob = withPdfContentType(blob);
   const looksValid = await isPdfBlob(typedBlob);
   if (!looksValid) {
     throw new Error('Generated file is not a valid PDF (missing %PDF header).');
   }
-  saveAs(typedBlob, filename);
+
+  let saveAsFn: ((data: Blob, filename: string) => void) | null = null;
+  try {
+    const mod: any = await import('file-saver');
+    // Resolve across CJS/ESM variations
+    if (mod) {
+      if (typeof mod.saveAs === 'function') {
+        saveAsFn = mod.saveAs;
+      } else if (typeof mod.default === 'function') {
+        saveAsFn = mod.default;
+      } else if (mod.default && typeof mod.default.saveAs === 'function') {
+        saveAsFn = mod.default.saveAs;
+      } else if (typeof mod === 'function') {
+        saveAsFn = mod as (data: Blob, filename: string) => void;
+      }
+    }
+  } catch (err) {
+    console.warn('file-saver import failed, will use fallback downloader.', err);
+  }
+
+  if (saveAsFn) {
+    try {
+      saveAsFn(typedBlob, filename);
+      return;
+    } catch (err) {
+      console.warn('file-saver saveAs invocation failed, using fallback downloader.', err);
+    }
+  }
+
+  // Fallback: trigger a download via an anchor element
+  if (typeof window !== 'undefined') {
+    const url = URL.createObjectURL(typedBlob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return;
+  }
+
+  throw new Error('Unable to save PDF in this environment');
 };
 
 // New helper function with retry logic

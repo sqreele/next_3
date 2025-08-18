@@ -22,22 +22,42 @@ if (typeof window !== 'undefined') {
   }
 }
 
-// Fixed wrapper for @react-pdf/renderer
-import { pdf } from '@react-pdf/renderer';
+// Import @react-pdf/renderer
+import { 
+  pdf, 
+  Document, 
+  Page, 
+  Text, 
+  View, 
+  StyleSheet, 
+  Image, 
+  Font 
+} from '@react-pdf/renderer';
 
 export async function generatePdfBlob(documentElement: React.ReactElement): Promise<Blob> {
   try {
     console.log('📄 Creating PDF instance...');
+    console.log('🔍 PDF function type:', typeof pdf);
     
-    // Direct import of pdf function
+    // Ensure pdf is actually a function
+    if (typeof pdf !== 'function') {
+      console.error('❌ pdf is not a function, type:', typeof pdf);
+      throw new Error(`pdf is not a function, got type: ${typeof pdf}`);
+    }
+    
+    // Create PDF instance
     const instance = pdf(documentElement);
     
     if (!instance) {
       throw new Error('Failed to create PDF instance');
     }
     
+    console.log('🔍 PDF instance created, checking toBlob method...');
+    console.log('🔍 Instance type:', typeof instance);
+    console.log('🔍 Instance has toBlob:', 'toBlob' in instance);
+    
     if (typeof instance.toBlob !== 'function') {
-      throw new Error('PDF instance does not have toBlob method');
+      throw new Error(`PDF instance does not have toBlob method. Available methods: ${Object.keys(instance).join(', ')}`);
     }
     
     console.log('⚙️ Converting to blob...');
@@ -57,7 +77,7 @@ export async function generatePdfBlob(documentElement: React.ReactElement): Prom
   }
 }
 
-// Re-export types and components
+// Re-export components and types
 export { 
   Document, 
   Page, 
@@ -66,6 +86,6 @@ export {
   StyleSheet, 
   Image, 
   Font 
-} from '@react-pdf/renderer';
+};
 
 export type { Styles } from '@react-pdf/renderer';

@@ -27,11 +27,15 @@ const ensurePdfFontsRegistered = () => {
   try {
     const regular = getPublicAssetUrl('/fonts/Sarabun-Regular.ttf');
     const bold = getPublicAssetUrl('/fonts/Sarabun-Bold.ttf');
+    const italic = getPublicAssetUrl('/fonts/Sarabun-Italic.ttf');
+    const boldItalic = getPublicAssetUrl('/fonts/Sarabun-BoldItalic.ttf');
     Font.register({
       family: 'Sarabun',
       fonts: [
-        { src: regular, fontWeight: 'normal' },
-        { src: bold, fontWeight: 'bold' },
+        { src: regular, fontWeight: 'normal', fontStyle: 'normal' },
+        { src: bold, fontWeight: 'bold', fontStyle: 'normal' },
+        { src: italic, fontWeight: 'normal', fontStyle: 'italic' },
+        { src: boldItalic, fontWeight: 'bold', fontStyle: 'italic' },
       ],
     });
     pdfFontsRegistered = true;

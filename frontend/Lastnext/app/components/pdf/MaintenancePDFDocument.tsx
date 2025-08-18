@@ -51,14 +51,18 @@ const ensurePdfFontsRegistered = () => {
   try {
     const regular = getPublicAssetUrl('/fonts/Sarabun-Regular.ttf');
     const bold = getPublicAssetUrl('/fonts/Sarabun-Bold.ttf');
-    
-    console.log('Registering PDF fonts:', { regular, bold });
-    
+    const italic = getPublicAssetUrl('/fonts/Sarabun-Italic.ttf');
+    const boldItalic = getPublicAssetUrl('/fonts/Sarabun-BoldItalic.ttf');
+
+    console.log('Registering PDF fonts:', { regular, bold, italic, boldItalic });
+
     Font.register({
       family: 'Sarabun',
       fonts: [
-        { src: regular, fontWeight: 'normal' },
-        { src: bold, fontWeight: 'bold' },
+        { src: regular, fontWeight: 'normal', fontStyle: 'normal' },
+        { src: bold, fontWeight: 'bold', fontStyle: 'normal' },
+        { src: italic, fontWeight: 'normal', fontStyle: 'italic' },
+        { src: boldItalic, fontWeight: 'bold', fontStyle: 'italic' },
       ],
     });
     
@@ -107,7 +111,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     padding: 40,
     fontSize: 10,
-    fontFamily: 'Sarabun, Helvetica, Arial',
+    fontFamily: 'Sarabun',
     margin: 0
   },
   header: {

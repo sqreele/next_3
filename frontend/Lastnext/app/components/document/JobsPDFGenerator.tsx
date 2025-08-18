@@ -320,7 +320,7 @@ const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({
   if (filteredJobs.length === 0) {
     return (
       <Document>
-        <Page size="A4" style={styles.page}>
+        <Page size="A4" orientation="landscape" style={styles.page}>
           <View style={styles.header}>
             <Text style={styles.headerText}>{reportTitle}</Text>
             <Text style={styles.subHeaderText}>
@@ -336,7 +336,7 @@ const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({
   return (
     <Document>
       {pageGroups.map((jobGroup, pageIndex) => (
-        <Page key={pageIndex} size="A4" style={styles.page}>
+        <Page key={pageIndex} size="A4" orientation="landscape" style={styles.page}>
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.headerText}>{reportTitle}</Text>

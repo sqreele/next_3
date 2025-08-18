@@ -1,136 +1,224 @@
 // ./app/components/document/JobsPDFGenerator.tsx
 "use client";
-// ./app/components/document/JobsPDFGenerator.tsx
+// Note: @react-pdf/renderer only supports JPG, JPEG, PNG, and GIF image formats
+// WebP, AVIF, and other modern formats will be handled cautiously for PDF compatibility
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, Image } from '@/app/lib/pdfRenderer';
+import { Document, Page, Text, View, StyleSheet, Image, Font } from '@/app/lib/pdfRenderer';
 import { Job, TabValue, FILTER_TITLES } from '@/app/lib/types';
-import { fixImageUrl } from '@/app/lib/utils/image-utils';
+
+// Font registration helpers to resolve absolute public URLs in both dev and prod
+const getPublicAssetUrl = (path: string): string => {
+  try {
+    if (typeof window !== 'undefined') {
+      const origin = window.location.origin;
+      return `${origin}${path}`;
+    } else {
+      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || process.env.NEXT_PUBLIC_ASSET_PREFIX || '';
+      return `${basePath}${path}`;
+    }
+  } catch {
+    return path;
+  }
+};
+
+let pdfFontsRegistered = false;
+const ensurePdfFontsRegistered = () => {
+  if (pdfFontsRegistered) return;
+  try {
+    const regular = getPublicAssetUrl('/fonts/Sarabun-Regular.ttf');
+    const bold = getPublicAssetUrl('/fonts/Sarabun-Bold.ttf');
+    Font.register({
+      family: 'Sarabun',
+      fonts: [
+        { src: regular, fontWeight: 'normal' },
+        { src: bold, fontWeight: 'bold' },
+      ],
+    });
+    pdfFontsRegistered = true;
+  } catch (error) {
+    // Fallback will rely on default fonts
+  }
+};
 
 interface JobsPDFDocumentProps {
   jobs: Job[];
   filter: TabValue;
   selectedProperty?: string | null;
   propertyName?: string;
+  topics?: any[];
+  onTopicChange?: (topicId: string) => void;
+  includeDetails?: boolean;
+  includeImages?: boolean;
+  includeStatistics?: boolean;
+  reportTitle?: string;
 }
 
 const styles = StyleSheet.create({
   page: {
-    padding: 30,
+    padding: 20,
     backgroundColor: '#ffffff',
-    fontFamily: 'Helvetica',
-    fontSize: 10,
+    fontFamily: 'Sarabun',
   },
   header: {
     marginBottom: 20,
     borderBottomWidth: 2,
-    borderBottomColor: '#000000',
-    borderBottomStyle: 'solid',
+    borderColor: '#1e40af',
     paddingBottom: 15,
   },
-  title: {
-    fontSize: 20,
+  headerText: {
+    fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 8,
-    color: '#000000',
+    color: '#1e40af',
+    textAlign: 'center',
   },
-  subtitle: {
+  subHeaderText: {
     fontSize: 14,
-    marginBottom: 6,
-    color: '#333333',
+    marginBottom: 5,
+    color: '#374151',
+    textAlign: 'center',
   },
-  info: {
+  metadata: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+    padding: 10,
+    backgroundColor: '#f9fafb',
+    borderRadius: 5,
+  },
+  metadataItem: {
     fontSize: 10,
-    color: '#666666',
-    marginBottom: 4,
+    color: '#6b7280',
   },
-  jobContainer: {
+  statistics: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
     marginBottom: 20,
     padding: 15,
-    borderWidth: 1,
-    borderColor: '#cccccc',
-    borderStyle: 'solid',
-    backgroundColor: '#fafafa',
+    backgroundColor: '#f0f9ff',
+    borderRadius: 8,
   },
-  jobHeader: {
-    fontSize: 14,
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statNumber: {
+    fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#000000',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eeeeee',
-    borderBottomStyle: 'solid',
-    paddingBottom: 4,
+    color: '#1e40af',
+    marginBottom: 5,
+  },
+  statLabel: {
+    fontSize: 10,
+    color: '#6b7280',
+    textAlign: 'center',
   },
   jobRow: {
     flexDirection: 'row',
-    marginBottom: 4,
-  },
-  label: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#444444',
-    width: '30%',
-  },
-  value: {
-    fontSize: 10,
-    color: '#666666',
-    width: '70%',
-  },
-  statusHigh: {
-    color: '#dc2626',
-    fontWeight: 'bold',
-  },
-  statusMedium: {
-    color: '#ea580c',
-    fontWeight: 'bold',
-  },
-  statusLow: {
-    color: '#16a34a',
-    fontWeight: 'bold',
-  },
-  description: {
-    fontSize: 9,
-    color: '#555555',
-    marginTop: 8,
-    padding: 8,
-    backgroundColor: '#f9f9f9',
-    borderWidth: 1,
-    borderColor: '#eeeeee',
-    borderStyle: 'solid',
-  },
-  imageSection: {
-    marginTop: 10,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#eeeeee',
-    borderTopStyle: 'solid',
-  },
-  imageRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 6,
-    gap: 8,
-  },
-  jobImage: {
-    width: '48%',
-    height: 120,
-    borderWidth: 1,
-    borderColor: '#dddddd',
-    borderStyle: 'solid',
+    borderBottomWidth: 1,
+    borderColor: '#e5e7eb',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    minHeight: 100,
+    maxHeight: 150,
+    marginBottom: 8,
     backgroundColor: '#ffffff',
   },
-  imagesTitle: {
-    fontSize: 10,
+  jobRowAlternate: {
+    backgroundColor: '#f9fafb',
+  },
+  imageColumn: {
+    width: '20%',
+    marginRight: 12,
+  },
+  infoColumn: {
+    width: '45%',
+    paddingRight: 10,
+  },
+  statusColumn: {
+    width: '35%',
+  },
+  jobImage: {
+    width: '100%',
+    height: 80,
+    objectFit: 'cover',
+    borderRadius: 4,
+  },
+  label: {
+    fontSize: 9,
+    color: '#6b7280',
+    marginBottom: 2,
     fontWeight: 'bold',
-    color: '#444444',
-    marginTop: 6,
+  },
+  value: {
+    fontSize: 9,
+    marginBottom: 4,
+    lineHeight: 1.3,
+    color: '#111827',
+  },
+  statusBadge: {
+    fontSize: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 3,
+    marginBottom: 4,
+    textAlign: 'center',
+    fontWeight: 'bold',
+  },
+  priorityBadge: {
+    fontSize: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 3,
+    marginBottom: 4,
+    textAlign: 'center',
+    fontWeight: 'bold',
+  },
+  dateText: {
+    fontSize: 8,
+    marginBottom: 3,
+    lineHeight: 1.2,
+    color: '#6b7280',
+  },
+  truncatedText: {
+    fontSize: 9,
+    marginBottom: 4,
+    lineHeight: 1.3,
+  },
+  sectionHeader: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#1e40af',
+    borderBottomWidth: 1,
+    borderBottomColor: '#d1d5db',
+    paddingBottom: 5,
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    textAlign: 'center',
+    fontSize: 8,
+    color: '#9ca3af',
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    paddingTop: 10,
   },
   pageNumber: {
     position: 'absolute',
     bottom: 20,
-    right: 30,
-    fontSize: 10,
-    color: '#888888',
+    right: 20,
+    fontSize: 8,
+    color: '#9ca3af',
+  },
+  noDataMessage: {
+    textAlign: 'center',
+    fontSize: 14,
+    color: '#9ca3af',
+    marginTop: 50,
+    fontStyle: 'italic',
   },
 });
 
@@ -138,111 +226,104 @@ const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({
   jobs, 
   filter, 
   selectedProperty, 
-  propertyName 
+  propertyName, 
+  topics, 
+  onTopicChange,
+  includeDetails = true,
+  includeImages = true,
+  includeStatistics = true,
+  reportTitle = 'Jobs Report'
 }) => {
-  console.log('🔄 Rendering PDF component...');
-  
-  // Safe data validation
-  const safeJobs = Array.isArray(jobs) ? jobs.filter(job => job && job.job_id) : [];
-  
-  // Do not re-filter by property; jobs are already filtered by the UI
-  const filteredJobs = safeJobs;
+  ensurePdfFontsRegistered();
 
-  // Convert image URL to safe same-origin path for PDF fetch
-  const getSafeImageUrl = (url?: string): string | undefined => {
-    if (!url) return undefined;
-    if (url.startsWith('data:')) return url;
-    try {
-      const fixed = fixImageUrl(url) || url;
-      const parsed = new URL(fixed, typeof window !== 'undefined' ? window.location.origin : 'https://pcms.live');
-      const isSameOrigin = typeof window !== 'undefined' ? parsed.origin === window.location.origin : parsed.origin.endsWith('pcms.live');
-      if (isSameOrigin || fixed.startsWith('/')) return parsed.toString();
-      return `/api/proxy-image?url=${encodeURIComponent(parsed.toString())}`;
-    } catch {
-      if (url.startsWith('/')) return url;
-      return `/api/proxy-image?url=${encodeURIComponent(url)}`;
-    }
-  };
+  const filteredJobs = (Array.isArray(jobs) ? jobs : []).filter((job) => {
+    if (!selectedProperty) return true;
+    return job.property_id === selectedProperty ||
+      (job.profile_image?.properties?.some(
+        (prop) => String((prop as any)?.property_id ?? (prop as any)?.id) === selectedProperty
+      )) || false;
+  });
 
-  const getJobImageUrls = (job: Job): string[] => {
-    const urls: string[] = [];
-    if (Array.isArray(job.images)) {
-      for (const img of job.images) {
-        if (img?.image_url) urls.push(img.image_url);
-      }
-    }
-    if (Array.isArray(job.image_urls)) {
-      for (const u of job.image_urls) {
-        if (u) urls.push(u);
-      }
-    }
-    const unique = Array.from(new Set(urls));
-    return unique
-      .map(u => getSafeImageUrl(u))
-      .filter((u): u is string => !!u);
-  };
-
-  const formatDate = (dateString: string | null | undefined): string => {
+  const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return 'Invalid Date';
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } catch {
-      return 'Invalid Date';
-    }
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
-  const getPriorityStyle = (priority: string) => {
+  const getPriorityColor = (priority: string) => {
     switch (priority?.toLowerCase()) {
-      case 'high': return styles.statusHigh;
-      case 'medium': return styles.statusMedium;
-      case 'low': return styles.statusLow;
-      default: return styles.value;
+      case 'high': return '#dc2626';
+      case 'medium': return '#ea580c';
+      case 'low': return '#16a34a';
+      default: return '#6b7280';
     }
   };
 
-  const getUserName = (user: any): string => {
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'completed': return '#16a34a';
+      case 'in_progress': return '#2563eb';
+      case 'pending': return '#ea580c';
+      case 'cancelled': return '#dc2626';
+      case 'waiting_sparepart': return '#7c3aed';
+      default: return '#6b7280';
+    }
+  };
+
+  const getUserDisplayName = (user: any): string => {
     if (!user) return 'Unassigned';
     if (typeof user === 'string') return user;
     if (typeof user === 'object') {
-      return user.name || user.username || user.displayName || 'User';
+      return user.name || user.username || user.displayName || user.email || String(user.id) || 'User';
     }
     return 'User';
   };
 
-  const truncateText = (text: string, maxLength: number = 150): string => {
-    if (!text || typeof text !== 'string') return '';
+  const truncateText = (text: string, maxLength: number = 120): string => {
+    if (!text) return '';
     return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
   };
 
-  // Split jobs into pages (conservative number to avoid memory issues)
-  const jobsPerPage = 3;
-  const pageGroups = [];
+  // Calculate statistics
+  const totalJobs = filteredJobs.length;
+  const completedJobs = filteredJobs.filter(job => job.status === 'completed').length;
+  const inProgressJobs = filteredJobs.filter(job => job.status === 'in_progress').length;
+  const pendingJobs = filteredJobs.filter(job => job.status === 'pending').length;
+  const cancelledJobs = filteredJobs.filter(job => job.status === 'cancelled').length;
+  const highPriorityJobs = filteredJobs.filter(job => job.priority === 'high').length;
+
+  // Group jobs by status (reserved for future layout changes)
+  const jobsByStatus = {
+    completed: filteredJobs.filter(job => job.status === 'completed'),
+    in_progress: filteredJobs.filter(job => job.status === 'in_progress'),
+    pending: filteredJobs.filter(job => job.status === 'pending'),
+    cancelled: filteredJobs.filter(job => job.status === 'cancelled'),
+    waiting_sparepart: filteredJobs.filter(job => job.status === 'waiting_sparepart'),
+  };
+
+  // Jobs per page for pagination
+  const jobsPerPage = 6;
+  const pageGroups: Job[][] = [];
   for (let i = 0; i < filteredJobs.length; i += jobsPerPage) {
     pageGroups.push(filteredJobs.slice(i, i + jobsPerPage));
   }
 
-  // Handle empty case
   if (filteredJobs.length === 0) {
     return (
       <Document>
         <Page size="A4" style={styles.page}>
           <View style={styles.header}>
-            <Text style={styles.title}>No Jobs Found</Text>
-            <Text style={styles.subtitle}>
-              {propertyName || 'Property Report'}
-            </Text>
-            <Text style={styles.info}>
-              No jobs match the selected criteria.
+            <Text style={styles.headerText}>{reportTitle}</Text>
+            <Text style={styles.subHeaderText}>
+              {propertyName ? `Property: ${propertyName}` : 'All Properties'}
             </Text>
           </View>
+          <Text style={styles.noDataMessage}>No jobs found for the selected criteria.</Text>
         </Page>
       </Document>
     );
@@ -252,137 +333,193 @@ const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({
     <Document>
       {pageGroups.map((jobGroup, pageIndex) => (
         <Page key={pageIndex} size="A4" style={styles.page}>
-          {/* Header only on first page */}
-          {pageIndex === 0 && (
-            <View style={styles.header}>
-              <Text style={styles.title}>
-                {propertyName || 'Jobs Report'}
-              </Text>
-              <Text style={styles.subtitle}>
-                {FILTER_TITLES[filter] || 'All Jobs'}
-              </Text>
-              <Text style={styles.info}>
-                Total Jobs: {filteredJobs.length}
-              </Text>
-              <Text style={styles.info}>
-                Generated: {formatDate(new Date().toISOString())}
-              </Text>
-            </View>
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.headerText}>{reportTitle}</Text>
+            <Text style={styles.subHeaderText}>
+              {propertyName ? `Property: ${propertyName}` : 'All Properties'}
+            </Text>
+            <Text style={styles.subHeaderText}>
+              {`Filter: ${(FILTER_TITLES as any)[filter] || filter} | Generated: ${new Date().toLocaleDateString()}`}
+            </Text>
+          </View>
+
+          {/* Statistics Section - Only on first page */}
+          {pageIndex === 0 && includeStatistics && (
+            <>
+              <View style={styles.metadata}>
+                <Text style={styles.metadataItem}>Total Jobs: {totalJobs}</Text>
+                <Text style={styles.metadataItem}>Filter: {(FILTER_TITLES as any)[filter] || filter}</Text>
+                <Text style={styles.metadataItem}>Date: {new Date().toLocaleDateString()}</Text>
+              </View>
+              
+              <View style={styles.statistics}>
+                <View style={styles.statItem}>
+                  <Text style={styles.statNumber}>{completedJobs}</Text>
+                  <Text style={styles.statLabel}>Completed</Text>
+                </View>
+                <View style={styles.statItem}>
+                  <Text style={styles.statNumber}>{inProgressJobs}</Text>
+                  <Text style={styles.statLabel}>In Progress</Text>
+                </View>
+                <View style={styles.statItem}>
+                  <Text style={styles.statNumber}>{pendingJobs}</Text>
+                  <Text style={styles.statLabel}>Pending</Text>
+                </View>
+                <View style={styles.statItem}>
+                  <Text style={styles.statNumber}>{highPriorityJobs}</Text>
+                  <Text style={styles.statLabel}>High Priority</Text>
+                </View>
+              </View>
+            </>
           )}
 
-          {/* Jobs for this page */}
-          {jobGroup.map((job, index) => {
-            if (!job || !job.job_id) return null;
-
+          {/* Jobs List */}
+          {jobGroup.map((job, jobIndex) => {
             return (
-              <View key={job.job_id} style={styles.jobContainer} wrap={false}>
-                <Text style={styles.jobHeader}>
-                  Job #{job.job_id} - {(job.status || 'Unknown').replace('_', ' ')}
-                </Text>
-                
-                <View style={styles.jobRow}>
-                  <Text style={styles.label}>Location:</Text>
-                  <Text style={styles.value}>
-                    {job.rooms?.[0]?.name || 'N/A'}
-                  </Text>
-                </View>
-
-                {job.rooms?.[0]?.room_type && (
-                  <View style={styles.jobRow}>
-                    <Text style={styles.label}>Room Type:</Text>
-                    <Text style={styles.value}>
-                      {job.rooms[0].room_type}
-                    </Text>
-                  </View>
-                )}
-
-                <View style={styles.jobRow}>
-                  <Text style={styles.label}>Priority:</Text>
-                  <Text style={[styles.value, getPriorityStyle(job.priority || 'medium')]}>
-                    {(job.priority || 'Medium').toUpperCase()}
-                  </Text>
-                </View>
-
-                <View style={styles.jobRow}>
-                  <Text style={styles.label}>Assigned to:</Text>
-                  <Text style={styles.value}>
-                    {getUserName(job.user)}
-                  </Text>
-                </View>
-
-                <View style={styles.jobRow}>
-                  <Text style={styles.label}>Topics:</Text>
-                  <Text style={styles.value}>
-                    {job.topics?.length 
-                      ? job.topics.map(t => t.title || 'N/A').join(', ') 
-                      : 'None'
+            <View 
+              key={job.job_id} 
+              style={[
+                styles.jobRow, 
+                jobIndex % 2 === 0 ? {} : styles.jobRowAlternate
+              ]} 
+              wrap={false}
+            >
+              {/* Image Column */}
+              <View style={styles.imageColumn}>
+                {includeImages && ((job.images && job.images.length > 0) || (job.image_urls && job.image_urls.length > 0)) ? (
+                  (() => {
+                    let imageUrl: string | undefined;
+                    let imageSource = 'none';
+                    
+                    if (job.images && job.images.length > 0) {
+                      imageUrl = job.images[0].image_url;
+                      imageSource = 'job.images[0].image_url';
+                    } else if (job.image_urls && job.image_urls.length > 0) {
+                      imageUrl = job.image_urls[0];
+                      imageSource = 'job.image_urls[0]';
+                    } else {
+                      return (
+                        <View style={[styles.jobImage, { backgroundColor: '#f3f4f6', justifyContent: 'center', alignItems: 'center' }]}>
+                          <Text style={{ fontSize: 8, color: '#9ca3af' }}>No Image</Text>
+                        </View>
+                      );
                     }
-                  </Text>
-                </View>
-
-                <View style={styles.jobRow}>
-                  <Text style={styles.label}>Created:</Text>
-                  <Text style={styles.value}>
-                    {formatDate(job.created_at)}
-                  </Text>
-                </View>
-
-                <View style={styles.jobRow}>
-                  <Text style={styles.label}>Updated:</Text>
-                  <Text style={styles.value}>
-                    {formatDate(job.updated_at)}
-                  </Text>
-                </View>
-
-                {job.completed_at && (
-                  <View style={styles.jobRow}>
-                    <Text style={styles.label}>Completed:</Text>
-                    <Text style={styles.value}>
-                      {formatDate(job.completed_at)}
-                    </Text>
+                    
+                    if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('data:')) {
+                      const baseUrl = process.env.NEXT_PUBLIC_MEDIA_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+                      imageUrl = `${baseUrl}${imageUrl}`;
+                    }
+                    
+                    const jpegPath = (job as any).images?.[0]?.jpeg_path as string | undefined;
+                    if (jpegPath) {
+                      const baseUrl = process.env.NEXT_PUBLIC_MEDIA_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+                      imageUrl = `${baseUrl}${jpegPath}`;
+                    } else if (imageUrl) {
+                      const cleanUrl = imageUrl.split('?')[0];
+                      const imageExtension = cleanUrl.split('.').pop()?.toLowerCase();
+                      const supportedFormats = ['jpg', 'jpeg', 'png', 'gif'];
+                      if (imageExtension && !supportedFormats.includes(imageExtension)) {
+                        return (
+                          <View style={[styles.jobImage, { backgroundColor: '#f3f4f6', justifyContent: 'center', alignItems: 'center' }]}>
+                            <Text style={{ fontSize: 8, color: '#ef4444', textAlign: 'center' }}>
+                              {`Unsupported format: ${imageExtension.toUpperCase()}`}
+                            </Text>
+                            <Text style={{ fontSize: 6, color: '#9ca3af', textAlign: 'center' }}>
+                              Convert to JPEG/PNG
+                            </Text>
+                          </View>
+                        );
+                      }
+                    }
+                    
+                    return (
+                      <Image
+                        src={imageUrl as string}
+                        style={styles.jobImage}
+                        cache={false}
+                      />
+                    );
+                  })()
+                ) : (
+                  <View style={[styles.jobImage, { backgroundColor: '#f3f4f6', justifyContent: 'center', alignItems: 'center' }]}>
+                    <Text style={{ fontSize: 8, color: '#9ca3af' }}>No Image</Text>
                   </View>
                 )}
-
-                {job.description && (
-                  <View style={styles.description}>
-                    <Text style={styles.label}>Description:</Text>
-                    <Text style={[styles.value, { marginTop: 4 }]}>
-                      {truncateText(job.description)}
-                    </Text>
-                  </View>
-                )}
-
-                {job.remarks && (
-                  <View style={styles.description}>
-                    <Text style={styles.label}>Remarks:</Text>
-                    <Text style={[styles.value, { marginTop: 4 }]}>
-                      {truncateText(job.remarks)}
-                    </Text>
-                  </View>
-                )}
-
-                {(() => {
-                  const imageUrls = getJobImageUrls(job).slice(0, 2);
-                  if (imageUrls.length === 0) return null;
-                  return (
-                    <View style={styles.imageSection}>
-                      <Text style={styles.imagesTitle}>Images</Text>
-                      <View style={styles.imageRow}>
-                        {imageUrls.map((src, i) => (
-                          <Image key={i} src={src} style={styles.jobImage} cache={false} />
-                        ))}
-                      </View>
-                    </View>
-                  );
-                })()}
               </View>
-            );
-          })}
 
-          {/* Page number */}
-          <Text style={styles.pageNumber}>
-            Page {pageIndex + 1} of {pageGroups.length}
-          </Text>
+              {/* Information Column */}
+              <View style={styles.infoColumn}>
+                <Text style={styles.label}>Job ID:</Text>
+                <Text style={styles.value}>{job.job_id}</Text>
+                
+                <Text style={styles.label}>Title:</Text>
+                <Text style={styles.value}>{truncateText((job as any).title || 'No Title')}</Text>
+                
+                <Text style={styles.label}>Description:</Text>
+                <Text style={styles.value}>{truncateText(job.description || 'No description')}</Text>
+                
+                {includeDetails && job.remarks && (
+                  <>
+                    <Text style={styles.label}>Remarks:</Text>
+                    <Text style={styles.value}>{truncateText(job.remarks, 80)}</Text>
+                  </>
+                )}
+                
+                <Text style={styles.label}>Assigned To:</Text>
+                <Text style={styles.value}>{getUserDisplayName(job.user)}</Text>
+              </View>
+
+              {/* Status Column */}
+              <View style={styles.statusColumn}>
+                <Text style={styles.label}>Status:</Text>
+                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(job.status) + '20', color: getStatusColor(job.status) }]}>
+                  <Text style={[styles.statusBadge, { backgroundColor: 'transparent', color: getStatusColor(job.status) }]}>
+                    {(job.status || 'unknown').replace('_', ' ').toUpperCase()}
+                  </Text>
+                </View>
+                
+                <Text style={styles.label}>Priority:</Text>
+                <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(job.priority) + '20', color: getPriorityColor(job.priority) }]}>
+                  <Text style={[styles.priorityBadge, { backgroundColor: 'transparent', color: getPriorityColor(job.priority) }]}>
+                    {(job.priority || 'normal').toUpperCase()}
+                  </Text>
+                </View>
+                
+                <Text style={styles.label}>Created:</Text>
+                <Text style={styles.dateText}>{formatDate(job.created_at)}</Text>
+                
+                {job.completed_at && (
+                  <>
+                    <Text style={styles.label}>Completed:</Text>
+                    <Text style={styles.dateText}>{formatDate(job.completed_at)}</Text>
+                  </>
+                )}
+                
+                {includeDetails && job.rooms && job.rooms.length > 0 && (
+                  <>
+                    <Text style={styles.label}>Location:</Text>
+                    <Text style={styles.value}>
+                      {job.rooms.map(room => room.name).join(', ')}
+                    </Text>
+                  </>
+                )}
+              </View>
+            </View>
+          );
+        })}
+
+          {/* Footer */}
+          <View style={styles.footer} fixed>
+            <Text>Generated by Facility Management System | {new Date().toLocaleDateString()}</Text>
+          </View>
+
+          {/* Page Number */}
+          <Text 
+            style={styles.pageNumber} 
+            render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} 
+            fixed 
+          />
         </Page>
       ))}
     </Document>

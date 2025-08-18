@@ -69,14 +69,14 @@ class PreventiveMaintenance(models.Model):
     # Direct ImageFields instead of ForeignKey to JobImage
     before_image = models.ImageField(
         upload_to='maintenance_pm_images/%Y/%m/',
-        validators=[FileExtensionValidator(['png', 'jpg', 'jpeg', 'gif', 'webp'])],
+        validators=[FileExtensionValidator(['png', 'jpg', 'jpeg', 'gif'])],
         null=True,
         blank=True,
         help_text="Image before maintenance"
     )
     after_image = models.ImageField(
         upload_to='maintenance_pm_images/%Y/%m/',
-        validators=[FileExtensionValidator(['png', 'jpg', 'jpeg', 'gif', 'webp'])],
+        validators=[FileExtensionValidator(['png', 'jpg', 'jpeg', 'gif'])],
         null=True,
         blank=True,
         help_text="Image after maintenance"
@@ -104,7 +104,7 @@ class PreventiveMaintenance(models.Model):
         return f"PM {self.pm_id} - {self.pmtitle}"
 
     def process_image(self, image_file):
-        """Process and resize the image, converting it to WebP format."""
+        """Process and resize the image, converting it to JPEG format."""
         if not image_file:
             return None, None
             
@@ -128,16 +128,16 @@ class PreventiveMaintenance(models.Model):
             # Create BytesIO object for the processed image
             output = BytesIO()
 
-            # Save as WebP
-            img.save(output, 'WEBP', quality=85, optimize=True)
+            # Save as JPEG
+            img.save(output, 'JPEG', quality=85, optimize=True)
             output.seek(0)
 
             # Generate unique filename
             random_name = get_random_string(12)
-            webp_name = f'maintenance_pm_images/{timezone.now().strftime("%Y/%m")}/{random_name}.webp'
+            jpeg_name = f'maintenance_pm_images/{timezone.now().strftime("%Y/%m")}/{random_name}.jpg'
 
             # Return the processed image and name
-            return ContentFile(output.getvalue()), webp_name
+            return ContentFile(output.getvalue()), jpeg_name
             
         except Exception as e:
             print(f"Error processing image: {e}")
@@ -156,16 +156,16 @@ class PreventiveMaintenance(models.Model):
         
         # Process before_image if it's been changed
         if hasattr(self, '_before_image_changed') and self._before_image_changed:
-            processed_image, webp_name = self.process_image(self.before_image)
-            if processed_image and webp_name:
-                self.before_image.save(webp_name, processed_image, save=False)
+            processed_image, jpeg_name = self.process_image(self.before_image)
+            if processed_image and jpeg_name:
+                self.before_image.save(jpeg_name, processed_image, save=False)
             self._before_image_changed = False
             
         # Process after_image if it's been changed
         if hasattr(self, '_after_image_changed') and self._after_image_changed:
-            processed_image, webp_name = self.process_image(self.after_image)
-            if processed_image and webp_name:
-                self.after_image.save(webp_name, processed_image, save=False)
+            processed_image, jpeg_name = self.process_image(self.after_image)
+            if processed_image and jpeg_name:
+                self.after_image.save(jpeg_name, processed_image, save=False)
             self._after_image_changed = False
             
         super().save(*args, **kwargs)
@@ -272,7 +272,7 @@ class ImageProcessor:
             new_height = min(max_height, int(new_width / aspect))
             img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
             output = BytesIO()
-            img.save(output, format='WEBP', quality=quality, optimize=True)
+            img.save(output, format='JPEG', quality=quality, optimize=True)
             output.seek(0)
             return output
         except Exception as e:
@@ -374,7 +374,7 @@ class JobImage(models.Model):
 
     image = models.ImageField(
         upload_to='maintenance_job_images/%Y/%m/',
-        validators=[FileExtensionValidator(['png', 'jpg', 'jpeg', 'gif', 'webp'])],
+        validators=[FileExtensionValidator(['png', 'jpg', 'jpeg', 'gif'])],
         null=True,
         blank=True,
         help_text="Uploaded image file"
@@ -403,7 +403,7 @@ class JobImage(models.Model):
 
     def process_image(self, image_file, quality=85):
         """
-        Process and resize the image, converting it to WebP format.
+        Process and resize the image, converting it to JPEG format.
         """
         try:
             img = Image.open(image_file)
@@ -425,8 +425,8 @@ class JobImage(models.Model):
             # Create BytesIO object for the processed image
             output = BytesIO()
 
-            # Save as WebP
-            img.save(output, 'WEBP', quality=quality, method=6)
+            # Save as JPEG
+            img.save(output, 'JPEG', quality=quality, optimize=True)
             output.seek(0)
 
             return output
@@ -442,14 +442,14 @@ class JobImage(models.Model):
                 # Process and convert image
                 processed_image = self.process_image(self.image)
 
-                # Generate filename for WebP version inside upload_to path with year/month
+                # Generate filename for JPEG version inside upload_to path with year/month
                 timestamp_path = timezone.now().strftime("%Y/%m")
                 base_name = Path(self.image.name).stem
-                webp_name = f'maintenance_job_images/{timestamp_path}/{base_name}.webp'
+                jpeg_name = f'maintenance_job_images/{timestamp_path}/{base_name}.jpg'
 
-                # Save the WebP version of the image
+                # Save the JPEG version of the image
                 self.image.save(
-                    webp_name,
+                    jpeg_name,
                     ContentFile(processed_image.getvalue()),
                     save=False
                 )
@@ -625,18 +625,18 @@ class UserProfile(models.Model):
                     output_size = (300, 300)
                     img.thumbnail(output_size, Image.Resampling.LANCZOS)
 
-                # Save as WebP
+                # Save as JPEG
                 output = BytesIO()
-                img.save(output, format='WEBP', quality=85, optimize=True)
+                img.save(output, format='JPEG', quality=85, optimize=True)
                 output.seek(0)
 
                 # Generate unique filename
                 random_name = get_random_string(12)
-                webp_name = f'profile_images/{random_name}.webp'
+                jpeg_name = f'profile_images/{random_name}.jpg'
 
                 # Save the processed image
                 self.profile_image.save(
-                    webp_name,
+                    jpeg_name,
                     ContentFile(output.getvalue()),
                     save=False
                 )

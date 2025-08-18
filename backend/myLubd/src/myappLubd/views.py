@@ -739,9 +739,9 @@ class PreventiveMaintenanceImageUploadView(APIView):
                 img = img.convert('RGB')
                 img.thumbnail((800, 800))
                 buffer = BytesIO()
-                img.save(buffer, format='WEBP', quality=85)
+                img.save(buffer, format='JPEG', quality=85, optimize=True)
                 buffer.seek(0)
-                return ContentFile(buffer.read(), name=f"{filename_prefix}.webp")
+                return ContentFile(buffer.read(), name=f"{filename_prefix}.jpg")
 
             if before_image:
                 pm.before_image = process_image(before_image, "before_image")

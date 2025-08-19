@@ -1,54 +1,54 @@
 // ./app/components/document/JobsPDFGenerator.tsx
 "use client";
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Document, Page, Text, View, StyleSheet, Image, Font } from '@/app/lib/pdfRenderer';
 import { Job, TabValue, FILTER_TITLES } from '@/app/lib/types';
 
-// Font helpers (align with MaintenancePDFDocument)
-const getPublicAssetUrl = (path: string): string => {
+// Improved font registration with fallback
+const registerFonts = () => {
   try {
-    if (typeof window !== 'undefined') {
-      const origin = window.location.origin;
-      const url = `${origin}${path}`;
-      return url;
-    } else {
+    const getPublicAssetUrl = (path: string): string => {
+      if (typeof window !== 'undefined') {
+        return `${window.location.origin}${path}`;
+      }
       const basePath = process.env.NEXT_PUBLIC_BASE_PATH || process.env.NEXT_PUBLIC_ASSET_PREFIX || '';
       return `${basePath}${path}`;
-    }
-  } catch {
-    return path;
-  }
-};
+    };
 
-let pdfFontsRegistered = false;
-const ensurePdfFontsRegistered = () => {
-  if (pdfFontsRegistered) return;
-  try {
-    const regular = getPublicAssetUrl('/fonts/Sarabun-Regular.ttf');
-    const bold = getPublicAssetUrl('/fonts/Sarabun-Bold.ttf');
     Font.register({
       family: 'Sarabun',
       fonts: [
-        { src: regular, fontWeight: 'normal', fontStyle: 'normal' },
-        { src: bold, fontWeight: 'bold', fontStyle: 'normal' },
+        { src: getPublicAssetUrl('/fonts/Sarabun-Regular.ttf'), fontWeight: 'normal' },
+        { src: getPublicAssetUrl('/fonts/Sarabun-Bold.ttf'), fontWeight: 'bold' },
       ],
     });
-    pdfFontsRegistered = true;
-  } catch {
-    // Fallback silently
+    
+    console.log('✅ Fonts registered successfully');
+    return true;
+  } catch (error) {
+    console.warn('❌ Font registration failed:', error);
+    return false;
   }
 };
 
-// Safe image URL resolver (proxy external images)
-const getSafeImageUrl = (url?: string): string | undefined => {
-  if (!url) return undefined;
+// Improved image URL processing with validation
+const processImageUrl = (url?: string): string | null => {
+  if (!url || typeof url !== 'string') return null;
+  
+  // Return data URLs as-is
   if (url.startsWith('data:')) return url;
+  
   try {
     const parsed = new URL(url, typeof window !== 'undefined' ? window.location.origin : 'https://pcms.live');
     const isSameOrigin = typeof window !== 'undefined'
       ? parsed.origin === window.location.origin
       : parsed.origin.endsWith('pcms.live');
-    if (isSameOrigin || url.startsWith('/')) return parsed.toString();
+      
+    if (isSameOrigin || url.startsWith('/')) {
+      return parsed.toString();
+    }
+    
+    // Use proxy for external images to avoid CORS and corruption issues
     return `/api/proxy-image?url=${encodeURIComponent(parsed.toString())}`;
   } catch {
     if (url.startsWith('/')) return url;
@@ -56,20 +56,48 @@ const getSafeImageUrl = (url?: string): string | undefined => {
   }
 };
 
-interface JobsPDFDocumentProps {
-  jobs: Job[];
-  filter: TabValue;
-  selectedProperty?: string | null;
-  propertyName?: string;
-  topics?: any[];
-  onTopicChange?: (topicId: string) => void;
-}
+// Validation function for job data
+const validateJobData = (job: Job): boolean => {
+  return !!(
+    job &&
+    typeof job === 'object' &&
+    job.job_id &&
+    job.status &&
+    job.priority
+  );
+};
+
+// Safe text rendering with fallbacks
+const SafeText = ({ children, style, ...props }: any) => (
+  <Text style={style} {...props}>
+    {children || 'N/A'}
+  </Text>
+);
+
+// Safe image component with error handling
+const SafeImage = ({ src, style, alt = "Job Image" }: { src?: string; style?: any; alt?: string }) => {
+  if (!src) {
+    return (
+      <View style={[style, { backgroundColor: '#f3f4f6', justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ fontSize: 8, color: '#9ca3af' }}>No Image</Text>
+      </View>
+    );
+  }
+
+  return (
+    <Image
+      src={src}
+      style={style}
+      cache={false} // Disable caching to prevent corruption
+    />
+  );
+};
 
 const styles = StyleSheet.create({
   page: {
     padding: 32,
     backgroundColor: '#ffffff',
-    fontFamily: 'Sarabun',
+    fontFamily: 'Helvetica', // Fallback to built-in font
   },
   header: {
     marginBottom: 16,
@@ -118,8 +146,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     minHeight: 84,
     marginBottom: 6,
-    backgroundColor: '#ffffff',
-    break: false
+    backgroundColor: '#ffffff'
   },
   imageColumn: {
     width: '22%',
@@ -185,7 +212,6 @@ const styles = StyleSheet.create({
     fontSize: 8,
     marginBottom: 3,
     lineHeight: 1.2,
-    maxLines: 2,
     color: '#111827'
   },
   pageNumber: {
@@ -209,39 +235,62 @@ const styles = StyleSheet.create({
   }
 });
 
-const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({ jobs, filter, selectedProperty, propertyName }) => {
-  // Ensure fonts registered in both SSR/CSR
+interface JobsPDFDocumentProps {
+  jobs: Job[];
+  filter: TabValue;
+  selectedProperty?: string | null;
+  propertyName?: string;
+}
+
+const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({ 
+  jobs, 
+  filter, 
+  selectedProperty, 
+  propertyName 
+}) => {
+  const [fontsReady, setFontsReady] = useState(false);
+  
   useEffect(() => {
-    ensurePdfFontsRegistered();
+    const initFonts = async () => {
+      const success = registerFonts();
+      setFontsReady(true); // Proceed even if fonts fail to load
+    };
+    initFonts();
   }, []);
-  const filteredJobs = (Array.isArray(jobs) ? jobs : []).filter((job) => {
-    if (!selectedProperty) return true;
 
-    return job.property_id === selectedProperty ||
-      (job.profile_image?.properties?.some(
-        (prop: any) => String((prop as any)?.property_id ?? (prop as any)?.id) === selectedProperty
-      )) || false;
-  });
+  // Validate and filter jobs
+  const validJobs = (Array.isArray(jobs) ? jobs : [])
+    .filter(validateJobData)
+    .filter((job) => {
+      if (!selectedProperty) return true;
+      return job.property_id === selectedProperty ||
+        (job.profile_image?.properties?.some(
+          (prop: any) => String((prop as any)?.property_id ?? (prop as any)?.id) === selectedProperty
+        )) || false;
+    });
 
-  // Summary counts by status for header
+  // Summary counts
   const statusCounts = {
-    completed: filteredJobs.filter(j => j.status === 'completed').length,
-    pending: filteredJobs.filter(j => j.status === 'pending').length,
-    in_progress: filteredJobs.filter(j => j.status === 'in_progress').length,
-    waiting_sparepart: filteredJobs.filter(j => j.status === 'waiting_sparepart').length,
-    cancelled: filteredJobs.filter(j => j.status === 'cancelled').length,
-  } as const;
+    completed: validJobs.filter(j => j.status === 'completed').length,
+    pending: validJobs.filter(j => j.status === 'pending').length,
+    in_progress: validJobs.filter(j => j.status === 'in_progress').length,
+    waiting_sparepart: validJobs.filter(j => j.status === 'waiting_sparepart').length,
+    cancelled: validJobs.filter(j => j.status === 'cancelled').length,
+  };
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
-
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return 'Invalid Date';
+    }
   };
 
   const getPriorityColor = (priority: string) => {
@@ -262,54 +311,80 @@ const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({ jobs, filter, selecte
     return 'User';
   };
 
-  // ฟังก์ชันตัดข้อความที่ยาวเกินไป
   const truncateText = (text: string, maxLength: number = 100): string => {
-    if (!text) return '';
+    if (!text || typeof text !== 'string') return '';
     return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
   };
 
-  // แบ่ง jobs เป็นกลุมๆ เพื่อป้องกันการตกหน้า
-  const jobsPerPage = 8; // จำนวน jobs ต่อหน้า
+  // Group jobs into pages
+  const jobsPerPage = 8;
   const pageGroups: Job[][] = [];
-  for (let i = 0; i < filteredJobs.length; i += jobsPerPage) {
-    pageGroups.push(filteredJobs.slice(i, i + jobsPerPage));
+  for (let i = 0; i < validJobs.length; i += jobsPerPage) {
+    pageGroups.push(validJobs.slice(i, i + jobsPerPage));
+  }
+
+  // Show loading if fonts aren't ready
+  if (!fontsReady) {
+    return (
+      <Document>
+        <Page size="A4" style={styles.page}>
+          <View style={{ textAlign: 'center', marginTop: 100 }}>
+            <Text>Loading PDF...</Text>
+          </View>
+        </Page>
+      </Document>
+    );
   }
 
   return (
     <Document>
       {pageGroups.map((jobGroup, pageIndex) => (
         <Page key={pageIndex} size="A4" style={styles.page}>
-          {/* แสดง header เฉพาะหน้าแรก */}
+          {/* Header on first page only */}
           {pageIndex === 0 && (
             <View style={styles.header}>
-              <Text style={styles.headerText}>{propertyName || 'Unnamed Property'}</Text>
-              <Text style={styles.subHeaderText}>{(FILTER_TITLES as any)[filter] || 'Job Report'}</Text>
-              <Text style={styles.label}>Total Jobs: {filteredJobs.length}</Text>
+              <SafeText style={styles.headerText}>
+                {propertyName || 'Unnamed Property'}
+              </SafeText>
+              <SafeText style={styles.subHeaderText}>
+                {(FILTER_TITLES as any)[filter] || 'Job Report'}
+              </SafeText>
+              <SafeText style={styles.label}>
+                Total Jobs: {validJobs.length}
+              </SafeText>
               <View style={styles.summaryBar}>
                 <View style={styles.summaryItem}>
-                  <Text style={[styles.summaryNumber, { color: '#16a34a' }]}>{statusCounts.completed}</Text>
-                  <Text style={styles.summaryLabel}>Completed</Text>
+                  <SafeText style={[styles.summaryNumber, { color: '#16a34a' }]}>
+                    {statusCounts.completed}
+                  </SafeText>
+                  <SafeText style={styles.summaryLabel}>Completed</SafeText>
                 </View>
                 <View style={styles.summaryItem}>
-                  <Text style={[styles.summaryNumber, { color: '#ca8a04' }]}>{statusCounts.pending}</Text>
-                  <Text style={styles.summaryLabel}>Pending</Text>
+                  <SafeText style={[styles.summaryNumber, { color: '#ca8a04' }]}>
+                    {statusCounts.pending}
+                  </SafeText>
+                  <SafeText style={styles.summaryLabel}>Pending</SafeText>
                 </View>
                 <View style={styles.summaryItem}>
-                  <Text style={[styles.summaryNumber, { color: '#1d4ed8' }]}>{statusCounts.in_progress}</Text>
-                  <Text style={styles.summaryLabel}>In Progress</Text>
+                  <SafeText style={[styles.summaryNumber, { color: '#1d4ed8' }]}>
+                    {statusCounts.in_progress}
+                  </SafeText>
+                  <SafeText style={styles.summaryLabel}>In Progress</SafeText>
                 </View>
                 <View style={styles.summaryItem}>
-                  <Text style={[styles.summaryNumber, { color: '#0891b2' }]}>{statusCounts.waiting_sparepart}</Text>
-                  <Text style={styles.summaryLabel}>Waiting Parts</Text>
+                  <SafeText style={[styles.summaryNumber, { color: '#0891b2' }]}>
+                    {statusCounts.waiting_sparepart}
+                  </SafeText>
+                  <SafeText style={styles.summaryLabel}>Waiting Parts</SafeText>
                 </View>
               </View>
             </View>
           )}
 
-          {/* แสดง page number สำหรับหน้าที่ 2 เป็นต้นไป */}
+          {/* Page number for subsequent pages */}
           {pageIndex > 0 && (
             <View style={{ marginBottom: 15, alignItems: 'center' }}>
-              <Text style={styles.subHeaderText}>Page {pageIndex + 1}</Text>
+              <SafeText style={styles.subHeaderText}>Page {pageIndex + 1}</SafeText>
             </View>
           )}
 
@@ -318,66 +393,76 @@ const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({ jobs, filter, selecte
               <View style={styles.imageColumn}>
                 {job.images && job.images.length > 0 ? (
                   <View style={styles.imageWrapper}>
-                    <Image
-                      src={getSafeImageUrl(job.images[0].image_url) || job.images[0].image_url}
+                    <SafeImage
+                      src={processImageUrl(job.images[0].image_url)}
                       style={styles.jobImage}
                     />
                     {job.images.length > 1 && (
-                      <Text style={styles.imageCountBadge}>+{job.images.length - 1}</Text>
+                      <SafeText style={styles.imageCountBadge}>
+                        +{job.images.length - 1}
+                      </SafeText>
                     )}
                   </View>
                 ) : (
                   <View style={styles.imageWrapper}>
                     <View style={[styles.jobImage, { backgroundColor: '#f3f4f6', justifyContent: 'center', alignItems: 'center' }]}>
-                      <Text style={{ fontSize: 8, color: '#9ca3af' }}>No Image</Text>
+                      <SafeText style={{ fontSize: 8, color: '#9ca3af' }}>No Image</SafeText>
                     </View>
                   </View>
                 )}
               </View>
 
               <View style={styles.infoColumn}>
-                <Text style={styles.label}>
+                <SafeText style={styles.label}>
                   Location: {String(job.rooms?.[0]?.room_id ?? '') || 'N/A'}
-                </Text>
-                <Text style={styles.label}>
+                </SafeText>
+                <SafeText style={styles.label}>
                   Room: {job.rooms?.[0]?.name || job.rooms?.[0]?.room_type || 'N/A'}
-                </Text>
-                <Text style={styles.label}>
+                </SafeText>
+                <SafeText style={styles.label}>
                   Topics: {job.topics?.length ? job.topics.map(t => (t as any).title || 'N/A').join(', ') : 'None'}
-                </Text>
-                <Text style={styles.statusBadge}>Status: {job.status.replace('_', ' ')}</Text>
-                <Text style={{
+                </SafeText>
+                <SafeText style={styles.statusBadge}>
+                  Status: {job.status.replace('_', ' ')}
+                </SafeText>
+                <SafeText style={{
                   ...styles.priorityBadge,
                   color: getPriorityColor(job.priority)
                 }}>
                   Priority: {job.priority}
-                </Text>
-                <Text style={styles.label}>
+                </SafeText>
+                <SafeText style={styles.label}>
                   Staff: {getUserDisplayName(job.user)}
-                </Text>
+                </SafeText>
               </View>
 
               <View style={styles.dateColumn}>
                 {job.description && (
                   <>
-                    <Text style={styles.label}>Description:</Text>
-                    <Text style={styles.truncatedText}>
+                    <SafeText style={styles.label}>Description:</SafeText>
+                    <SafeText style={styles.truncatedText}>
                       {truncateText(job.description, 140)}
-                    </Text>
+                    </SafeText>
                   </>
                 )}
                 {job.remarks && (
                   <>
-                    <Text style={styles.label}>Remarks:</Text>
-                    <Text style={styles.truncatedText}>
+                    <SafeText style={styles.label}>Remarks:</SafeText>
+                    <SafeText style={styles.truncatedText}>
                       {truncateText(job.remarks, 140)}
-                    </Text>
+                    </SafeText>
                   </>
                 )}
-                <Text style={styles.dateText}>Created: {formatDate(job.created_at)}</Text>
-                <Text style={styles.dateText}>Updated: {formatDate(job.updated_at)}</Text>
+                <SafeText style={styles.dateText}>
+                  Created: {formatDate(job.created_at)}
+                </SafeText>
+                <SafeText style={styles.dateText}>
+                  Updated: {formatDate(job.updated_at)}
+                </SafeText>
                 {job.completed_at && (
-                  <Text style={styles.dateText}>Completed: {formatDate(job.completed_at)}</Text>
+                  <SafeText style={styles.dateText}>
+                    Completed: {formatDate(job.completed_at)}
+                  </SafeText>
                 )}
               </View>
             </View>
@@ -390,7 +475,7 @@ const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({ jobs, filter, selecte
             fixed
           />
           <View style={styles.footer} fixed>
-            <Text>Generated by Facility Management System</Text>
+            <SafeText>Generated by Facility Management System</SafeText>
           </View>
         </Page>
       ))}

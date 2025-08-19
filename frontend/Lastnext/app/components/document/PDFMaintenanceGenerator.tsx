@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { saveBlobAsPdf } from '@/app/lib/pdfUtils';
 import { 
   FileText, 
   Download, 
@@ -316,7 +317,8 @@ const PDFMaintenanceGenerator: React.FC<PDFMaintenanceGeneratorProps> = ({ initi
       }
 
       const fileName = `preventive-maintenance-report-${new Date().toISOString().split('T')[0]}.pdf`;
-      pdf.save(fileName);
+      const blob = pdf.output('blob');
+      await saveBlobAsPdf(blob, fileName);
 
     } catch (error) {
       console.error('Error generating PDF:', error);

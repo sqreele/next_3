@@ -16,7 +16,7 @@ import {
   DropdownMenuLabel,
 } from "@/app/components/ui/dropdown-menu";
 import { SortOrder, Job, Property, TabValue, Room } from "@/app/lib/types";
-import { format } from "date-fns";
+import { formatDateForFilename } from "@/app/lib/utils";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
 import { Calendar as CalendarComponent } from "@/app/components/ui/calendar";
 
@@ -199,7 +199,7 @@ export default function JobActions({
       console.log('✅ PDF generated successfully, size:', blob.size, 'bytes');
 
       // Save the PDF
-      const date = format(new Date(), "yyyy-MM-dd");
+      const date = formatDateForFilename(new Date());
       const cleanPropertyName = propertyName.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '-');
       const filename = `jobs-report-${cleanPropertyName}-${date}.pdf`;
       

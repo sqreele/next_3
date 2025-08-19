@@ -17,7 +17,7 @@ import {
 import { Badge } from "@/app/components/ui/badge";
 import { JobStatus, JobPriority } from "@/app/lib/types";
 import { cn } from "@/app/lib/utils";
-import { format } from "date-fns";
+import { formatDate, DATE_FORMATS } from "@/app/lib/utils";
 import { Calendar as CalendarComponent } from "@/app/components/ui/calendar";
 
 export interface FilterState {
@@ -102,17 +102,17 @@ const JobFilters: React.FC<JobFiltersProps> = ({
     
     if (filters.dateRange.from && filters.dateRange.to) {
       if (filters.dateRange.from.toDateString() === filters.dateRange.to.toDateString()) {
-        return format(filters.dateRange.from, "MMM d, yyyy");
+        return formatDate(filters.dateRange.from, DATE_FORMATS.LONG_DATE);
       }
-      return `${format(filters.dateRange.from, "MMM d")} - ${format(filters.dateRange.to, "MMM d, yyyy")}`;
+      return `${formatDate(filters.dateRange.from, 'MMM d')} - ${formatDate(filters.dateRange.to, DATE_FORMATS.LONG_DATE)}`;
     }
     
     if (filters.dateRange.from) {
-      return `From ${format(filters.dateRange.from, "MMM d, yyyy")}`;
+      return `From ${formatDate(filters.dateRange.from, DATE_FORMATS.LONG_DATE)}`;
     }
     
     if (filters.dateRange.to) {
-      return `Until ${format(filters.dateRange.to, "MMM d, yyyy")}`;
+      return `Until ${formatDate(filters.dateRange.to, DATE_FORMATS.LONG_DATE)}`;
     }
   };
 

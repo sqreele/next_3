@@ -32,8 +32,8 @@ const registerFonts = () => {
 };
 
 // Improved image URL processing with validation
-const processImageUrl = (url?: string): string | null => {
-  if (!url || typeof url !== 'string') return null;
+const processImageUrl = (url?: string): string | undefined => {
+  if (!url || typeof url !== 'string') return undefined;
   
   // Return data URLs as-is
   if (url.startsWith('data:')) return url;
@@ -471,7 +471,7 @@ const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({
           {/* Footer and page number */}
           <Text 
             style={styles.pageNumber}
-            render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}
+            render={({ pageNumber, totalPages }: { pageNumber: number; totalPages: number }) => `Page ${pageNumber} of ${totalPages}`}
             fixed
           />
           <View style={styles.footer} fixed>

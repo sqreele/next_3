@@ -1,3 +1,4 @@
+// ./app/lib/pdfUtils.ts
 export const isPdfBlob = async (blob: Blob): Promise<boolean> => {
   try {
     const header = await blob.slice(0, 5).text();
@@ -7,52 +8,65 @@ export const isPdfBlob = async (blob: Blob): Promise<boolean> => {
   }
 };
 
+export const validatePdfBlob = async (blob: Blob): Promise<{ isValid: boolean; error?: string }> => {
+  try {
+    // Check size
+    if (blob.size === 0) {
+      return { isValid: false, error: 'PDF blob is empty' };
+    }
+    
+    if (blob.size < 100) {
+      return { isValid: false, error: 'PDF blob is too small' };
+    }
+    
+    // Check PDF header
+    const header = await blob.slice(0, 5).text();
+    if (!header.startsWith('%PDF-')) {
+      return { isValid: false, error: 'Invalid PDF header' };
+    }
+    
+    // Check for EOF marker
+    const end = await blob.slice(-10).text();
+    if (!end.includes('EOF')) {
+      console.warn('PDF may be incomplete - no EOF marker found');
+    }
+    
+    return { isValid: true };
+  } catch (error) {
+    return { isValid: false, error: `Validation error: ${error}` };
+  }
+};
+
 export const withPdfContentType = (blob: Blob): Blob => {
   if (blob.type === 'application/pdf') return blob;
   return new Blob([blob], { type: 'application/pdf' });
 };
 
 export const saveBlobAsPdf = async (blob: Blob, filename: string): Promise<void> => {
+  // Validate PDF before saving
+  const validation = await validatePdfBlob(blob);
+  if (!validation.isValid) {
+    throw new Error(`Invalid PDF: ${validation.error}`);
+  }
+
   const typedBlob = withPdfContentType(blob);
-  const looksValid = await isPdfBlob(typedBlob);
-  if (!looksValid) {
-    throw new Error('Generated file is not a valid PDF (missing %PDF header).');
-  }
 
-  let saveAsFn: ((data: Blob, filename: string) => void) | null = null;
+  // Try file-saver first
   try {
-    const mod: any = await import('file-saver');
-    // Resolve across CJS/ESM variations
-    if (mod) {
-      if (typeof mod.saveAs === 'function') {
-        saveAsFn = mod.saveAs;
-      } else if (typeof mod.default === 'function') {
-        saveAsFn = mod.default;
-      } else if (mod.default && typeof mod.default.saveAs === 'function') {
-        saveAsFn = mod.default.saveAs;
-      } else if (typeof mod === 'function') {
-        saveAsFn = mod as (data: Blob, filename: string) => void;
-      }
-    }
-  } catch (err) {
-    console.warn('file-saver import failed, will use fallback downloader.', err);
+    const { saveAs } = await import('file-saver');
+    saveAs(typedBlob, filename);
+    return;
+  } catch (error) {
+    console.warn('file-saver failed, using fallback:', error);
   }
 
-  if (saveAsFn) {
-    try {
-      saveAsFn(typedBlob, filename);
-      return;
-    } catch (err) {
-      console.warn('file-saver saveAs invocation failed, using fallback downloader.', err);
-    }
-  }
-
-  // Fallback: trigger a download via an anchor element
+  // Fallback download method
   if (typeof window !== 'undefined') {
     const url = URL.createObjectURL(typedBlob);
     const anchor = document.createElement('a');
     anchor.href = url;
     anchor.download = filename;
+    anchor.style.display = 'none';
     document.body.appendChild(anchor);
     anchor.click();
     document.body.removeChild(anchor);
@@ -63,7 +77,6 @@ export const saveBlobAsPdf = async (blob: Blob, filename: string): Promise<void>
   throw new Error('Unable to save PDF in this environment');
 };
 
-// New helper function with retry logic
 export const generatePdfWithRetry = async (
   pdfGenerator: () => Promise<Blob>,
   maxRetries: number = 3
@@ -76,16 +89,9 @@ export const generatePdfWithRetry = async (
       const blob = await pdfGenerator();
       
       // Validate the blob
-      if (!blob || blob.size === 0) {
-        throw new Error('Generated PDF blob is empty');
-      }
-      
-      // Check if it's a valid PDF
-      const isValid = await isPdfBlob(blob);
-      if (!isValid && i < maxRetries - 1) {
-        console.warn(`Generated blob is not a valid PDF, retrying...`);
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
-        continue;
+      const validation = await validatePdfBlob(blob);
+      if (!validation.isValid) {
+        throw new Error(`Invalid PDF: ${validation.error}`);
       }
       
       return blob;
@@ -94,8 +100,8 @@ export const generatePdfWithRetry = async (
       lastError = error as Error;
       
       if (i < maxRetries - 1) {
-        // Wait before retrying
-        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))); // Exponential backoff
+        // Wait before retrying (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
       }
     }
   }

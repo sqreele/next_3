@@ -1,12 +1,8 @@
 import { PreventiveMaintenance } from '@/app/lib/preventiveMaintenanceModels';
+import { formatDate as formatDateUtil, DATE_FORMATS } from '@/app/lib/utils';
 
 export function formatDate(dateString: string): string {
-  if (!dateString) return 'N/A';
-  return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  });
+  return formatDateUtil(dateString, DATE_FORMATS.LONG_DATE);
 }
 
 export function getFrequencyText(frequency: string): string {

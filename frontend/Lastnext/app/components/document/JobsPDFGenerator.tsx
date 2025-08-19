@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Document, Page, Text, View, StyleSheet, Image, Font } from '@/app/lib/pdfRenderer';
 import { Job, TabValue, FILTER_TITLES } from '@/app/lib/types';
+import { formatDate, DATE_FORMATS } from '@/app/lib/utils';
 
 // Improved font registration with fallback
 const registerFonts = () => {
@@ -278,19 +279,9 @@ const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({
     cancelled: validJobs.filter(j => j.status === 'cancelled').length,
   };
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'N/A';
-    try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } catch {
-      return 'Invalid Date';
-    }
+  // Use centralized date formatting
+  const formatJobDate = (dateString: string | null) => {
+    return formatDate(dateString, DATE_FORMATS.DATE_TIME_12H);
   };
 
   const getPriorityColor = (priority: string) => {
@@ -454,14 +445,14 @@ const JobsPDFDocument: React.FC<JobsPDFDocumentProps> = ({
                   </>
                 )}
                 <SafeText style={styles.dateText}>
-                  Created: {formatDate(job.created_at)}
+                  Created: {formatJobDate(job.created_at)}
                 </SafeText>
                 <SafeText style={styles.dateText}>
-                  Updated: {formatDate(job.updated_at)}
+                  Updated: {formatJobDate(job.updated_at)}
                 </SafeText>
                 {job.completed_at && (
                   <SafeText style={styles.dateText}>
-                    Completed: {formatDate(job.completed_at)}
+                    Completed: {formatJobDate(job.completed_at)}
                   </SafeText>
                 )}
               </View>

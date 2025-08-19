@@ -39,38 +39,82 @@ export async function generatePdfBlob(documentElement: React.ReactElement): Prom
   try {
     console.log('📄 Creating PDF instance...');
     
-    // Create PDF instance with timeout
-    const instance = pdfFunction(documentElement);
+    // Create PDF instance with better error handling
+    let instance;
+    try {
+      instance = pdfFunction(documentElement);
+    } catch (error) {
+      console.error('Failed to create PDF instance:', error);
+      throw new Error(`PDF instance creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
     
     if (!instance || typeof instance.toBlob !== 'function') {
-      throw new Error('Invalid PDF instance created');
+      throw new Error('Invalid PDF instance created - toBlob method not available');
     }
     
     console.log('⚙️ Converting to blob...');
     
-    // Add timeout to prevent hanging
+    // Add timeout to prevent hanging with increased timeout for complex PDFs
     const blobPromise = instance.toBlob();
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('PDF generation timeout')), 30000)
+      setTimeout(() => reject(new Error('PDF generation timeout after 60 seconds')), 60000)
     );
     
-    const blob = await Promise.race([blobPromise, timeoutPromise]) as Blob;
-    
-    if (!blob || blob.size === 0) {
-      throw new Error('Generated PDF blob is empty');
+    let blob;
+    try {
+      blob = await Promise.race([blobPromise, timeoutPromise]) as Blob;
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('timeout')) {
+        throw error;
+      }
+      throw new Error(`PDF blob conversion failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
     
-    // Validate PDF header
-    const header = await blob.slice(0, 5).text();
+    if (!blob) {
+      throw new Error('Generated PDF blob is null or undefined');
+    }
+    
+    if (blob.size === 0) {
+      throw new Error('Generated PDF blob is empty (0 bytes)');
+    }
+    
+    if (blob.size < 100) {
+      throw new Error(`Generated PDF blob is too small (${blob.size} bytes) - likely corrupted`);
+    }
+    
+    // Validate PDF header with better error handling
+    let header;
+    try {
+      header = await blob.slice(0, 5).text();
+    } catch (error) {
+      console.error('Failed to read PDF header:', error);
+      throw new Error('Cannot read PDF header - blob may be corrupted');
+    }
+    
     if (!header.startsWith('%PDF-')) {
-      throw new Error('Generated blob is not a valid PDF');
+      throw new Error(`Invalid PDF header: "${header}" - expected "%PDF-"`);
     }
     
-    console.log('✅ PDF blob generated successfully, size:', blob.size);
+    // Additional validation: check for proper PDF structure
+    try {
+      const tail = await blob.slice(-100).text();
+      if (!tail.includes('%%EOF')) {
+        console.warn('PDF may be incomplete - no %%EOF marker found in last 100 bytes');
+      }
+    } catch (error) {
+      console.warn('Could not validate PDF EOF marker:', error);
+    }
+    
+    console.log('✅ PDF blob generated successfully, size:', blob.size, 'bytes');
     return blob;
     
   } catch (error) {
     console.error('❌ Error in generatePdfBlob:', error);
+    console.error('📊 Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : 'No stack trace'
+    });
     throw error;
   }
 }

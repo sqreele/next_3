@@ -1,4 +1,6 @@
+"use client";
 // ./app/lib/pdfUtils.ts
+import { saveAs as fileSaverSaveAs } from 'file-saver';
 export const isPdfBlob = async (blob: Blob): Promise<boolean> => {
   try {
     const header = await blob.slice(0, 5).text();
@@ -144,12 +146,16 @@ export const saveBlobAsPdf = async (blob: Blob, filename: string): Promise<void>
 
   const typedBlob = withPdfContentType(blob);
 
-  // Try file-saver first
+  // Try file-saver first (robust handling across module formats)
   try {
-    const { saveAs } = await import('file-saver');
-    saveAs(typedBlob, filename);
-    console.log(`PDF saved successfully: ${filename} (${blob.size} bytes)`);
-    return;
+    const possibleSaveAs: any = fileSaverSaveAs as unknown as any;
+    if (typeof possibleSaveAs === 'function') {
+      possibleSaveAs(typedBlob, filename);
+      console.log(`PDF saved successfully: ${filename} (${blob.size} bytes)`);
+      return;
+    }
+    // If import shape is unexpected, log and fall through to fallback
+    console.warn('file-saver export is not a function; using fallback');
   } catch (error) {
     console.warn('file-saver failed, using fallback:', error);
   }

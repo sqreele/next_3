@@ -1,14 +1,28 @@
 // ./app/lib/pdfRenderer.ts
 "use client";
 
-// Enhanced runtime shims with better error handling
+import process from 'process';
+import { Buffer } from 'buffer';
+import {
+  pdf as createPdf,
+  Document as PdfDocument,
+  Page as PdfPage,
+  Text as PdfText,
+  View as PdfView,
+  StyleSheet as PdfStyleSheet,
+  Image as PdfImage,
+  Font as PdfFont,
+  type Styles
+} from '@react-pdf/renderer';
+
+// Minimal runtime shims for browser environment
 if (typeof window !== 'undefined') {
   try {
     if (typeof (window as any).process === 'undefined') {
-      (window as any).process = require('process/browser');
+      (window as any).process = process as any;
     }
     if (typeof (window as any).Buffer === 'undefined') {
-      (window as any).Buffer = require('buffer').Buffer;
+      (window as any).Buffer = Buffer as any;
     }
     if (typeof (window as any).global === 'undefined') {
       (window as any).global = window as any;
@@ -18,21 +32,8 @@ if (typeof window !== 'undefined') {
   }
 }
 
-// Import with error handling
-let pdfComponents: any = {};
-let pdfFunction: any = null;
-
-try {
-  const reactPdf = require('@react-pdf/renderer');
-  pdfComponents = reactPdf;
-  pdfFunction = reactPdf.pdf;
-} catch (error) {
-  console.error('Failed to import @react-pdf/renderer:', error);
-  throw new Error('PDF renderer not available');
-}
-
 export async function generatePdfBlob(documentElement: React.ReactElement): Promise<Blob> {
-  if (!pdfFunction || typeof pdfFunction !== 'function') {
+  if (!createPdf || typeof createPdf !== 'function') {
     throw new Error('PDF function not available');
   }
 
@@ -42,7 +43,7 @@ export async function generatePdfBlob(documentElement: React.ReactElement): Prom
     // Create PDF instance with better error handling
     let instance;
     try {
-      instance = pdfFunction(documentElement);
+      instance = createPdf(documentElement);
     } catch (error) {
       console.error('Failed to create PDF instance:', error);
       throw new Error(`PDF instance creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -120,12 +121,12 @@ export async function generatePdfBlob(documentElement: React.ReactElement): Prom
 }
 
 // Re-export components with validation
-export const Document = pdfComponents.Document;
-export const Page = pdfComponents.Page;
-export const Text = pdfComponents.Text;
-export const View = pdfComponents.View;
-export const StyleSheet = pdfComponents.StyleSheet;
-export const Image = pdfComponents.Image;
-export const Font = pdfComponents.Font;
+export const Document = PdfDocument;
+export const Page = PdfPage;
+export const Text = PdfText;
+export const View = PdfView;
+export const StyleSheet = PdfStyleSheet;
+export const Image = PdfImage;
+export const Font = PdfFont;
 
-export type { Styles } from '@react-pdf/renderer';
+export type { Styles };

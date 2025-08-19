@@ -18,21 +18,11 @@ if (typeof window !== 'undefined') {
   }
 }
 
-// Import with error handling
-let pdfComponents: any = {};
-let pdfFunction: any = null;
-
-try {
-  const reactPdf = require('@react-pdf/renderer');
-  pdfComponents = reactPdf;
-  pdfFunction = reactPdf.pdf;
-} catch (error) {
-  console.error('Failed to import @react-pdf/renderer:', error);
-  throw new Error('PDF renderer not available');
-}
+// Import ESM package (@react-pdf/renderer) with proper ESM syntax
+import * as reactPdf from '@react-pdf/renderer';
 
 export async function generatePdfBlob(documentElement: React.ReactElement): Promise<Blob> {
-  if (!pdfFunction || typeof pdfFunction !== 'function') {
+  if (!reactPdf.pdf || typeof reactPdf.pdf !== 'function') {
     throw new Error('PDF function not available');
   }
 
@@ -42,7 +32,7 @@ export async function generatePdfBlob(documentElement: React.ReactElement): Prom
     // Create PDF instance with better error handling
     let instance;
     try {
-      instance = pdfFunction(documentElement);
+      instance = reactPdf.pdf(documentElement);
     } catch (error) {
       console.error('Failed to create PDF instance:', error);
       throw new Error(`PDF instance creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -120,12 +110,12 @@ export async function generatePdfBlob(documentElement: React.ReactElement): Prom
 }
 
 // Re-export components with validation
-export const Document = pdfComponents.Document;
-export const Page = pdfComponents.Page;
-export const Text = pdfComponents.Text;
-export const View = pdfComponents.View;
-export const StyleSheet = pdfComponents.StyleSheet;
-export const Image = pdfComponents.Image;
-export const Font = pdfComponents.Font;
+export const Document = reactPdf.Document;
+export const Page = reactPdf.Page;
+export const Text = reactPdf.Text;
+export const View = reactPdf.View;
+export const StyleSheet = reactPdf.StyleSheet;
+export const Image = reactPdf.Image;
+export const Font = reactPdf.Font;
 
 export type { Styles } from '@react-pdf/renderer';

@@ -1015,7 +1015,7 @@ const MaintenancePDFDocument: React.FC<MaintenancePDFDocumentProps> = ({
         {/* Page Number */}
         <Text 
           style={styles.pageNumber} 
-          render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} 
+          render={({ pageNumber, totalPages }: { pageNumber: number; totalPages: number }) => `Page ${pageNumber} of ${totalPages}`} 
           fixed 
         />
 
@@ -1126,7 +1126,7 @@ const MaintenancePDFDocument: React.FC<MaintenancePDFDocumentProps> = ({
           {/* Page Number */}
           <Text 
             style={styles.pageNumber} 
-            render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} 
+            render={({ pageNumber, totalPages }: { pageNumber: number; totalPages: number }) => `Page ${pageNumber} of ${totalPages}`} 
             fixed 
           />
 

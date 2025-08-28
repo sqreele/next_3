@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/lib/auth';
 import { getErrorMessage } from '@/app/lib/utils/error-utils';
 
 interface DjangoTestResult {
@@ -34,21 +32,21 @@ export async function GET(request: NextRequest) {
     
     console.log('🧪 NextAuth cookies:', nextAuthCookies);
 
-    // Try to get session
-    const session = await getServerSession(authOptions);
+    // Session retrieval disabled (next-auth removed)
+    const session: any = null;
     
     console.log('🧪 Session result:', {
-      hasSession: !!session,
-      hasUser: !!session?.user,
-      hasAccessToken: !!session?.user?.accessToken,
-      sessionError: session?.error,
-      sessionKeys: session ? Object.keys(session) : [],
-      userKeys: session?.user ? Object.keys(session.user) : []
+      hasSession: false,
+      hasUser: false,
+      hasAccessToken: false,
+      sessionError: undefined,
+      sessionKeys: [],
+      userKeys: []
     });
 
     // Test Django API call if we have a token
     let djangoTestResult: DjangoTestResult | null = null;
-    if (session?.user?.accessToken) {
+    if (false) {
       try {
         console.log('🧪 Testing Django API with token...');
         const djangoResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/properties/`, {
@@ -58,7 +56,7 @@ export async function GET(request: NextRequest) {
           },
         });
         
-        djangoTestResult = {
+        const baseResult: DjangoTestResult = {
           status: djangoResponse.status,
           ok: djangoResponse.ok,
           statusText: djangoResponse.statusText
@@ -66,10 +64,17 @@ export async function GET(request: NextRequest) {
         
         if (djangoResponse.ok) {
           const data = await djangoResponse.json();
-          djangoTestResult.dataLength = Array.isArray(data) ? data.length : 0;
-          djangoTestResult.dataType = typeof data;
+          djangoTestResult = {
+            ...baseResult,
+            dataLength: Array.isArray(data) ? data.length : 0,
+            dataType: typeof data
+          };
         } else {
-          djangoTestResult.error = await djangoResponse.text();
+          const errText = await djangoResponse.text();
+          djangoTestResult = {
+            ...baseResult,
+            error: errText
+          };
         }
         
         console.log('🧪 Django API test result:', djangoTestResult);
@@ -116,7 +121,6 @@ export async function GET(request: NextRequest) {
       hasSession: result.session.exists,
       hasAccessToken: result.session.hasAccessToken,
       cookiesFound: result.cookies.total,
-      djangoApiStatus: djangoTestResult?.status
     });
 
     return NextResponse.json(result);

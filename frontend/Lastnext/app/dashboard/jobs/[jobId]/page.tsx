@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation';
 import { fetchJob, fetchProperties } from '@/app/lib/data.server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/lib/auth';
+import { redirect } from 'next/navigation';
 import type { Metadata, ResolvingMetadata } from 'next';
 import { MapPin, Clock, Calendar, User, CheckCircle2, MessageSquare, StickyNote, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/app/components/ui/badge';
@@ -19,8 +18,8 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   try {
     const { jobId } = await params;
-    const session = await getServerSession(authOptions);
-    const accessToken = session?.user?.accessToken;
+    redirect('/auth/signin');
+    const accessToken = '' as any;
     const job = await fetchJob(jobId, accessToken);
 
     if (!job) {
@@ -30,12 +29,18 @@ export async function generateMetadata(
     }
 
     const previousImages = (await parent).openGraph?.images || [];
+    const titlePart = job?.priority ? String(job?.priority) : 'Job';
+    const idPart = job?.job_id || job?.id ? String(job?.job_id || job?.id) : '';
+    const safeTitle = `${titlePart}${idPart ? ` | Job #${idPart}` : ''}`;
+    const descId = job?.id || job?.job_id ? String(job?.id || job?.job_id) : '';
+    const hasDescription = Boolean(job?.description);
+    const safeDescription = hasDescription ? String(job?.description) : `Details for job ${descId || ''}`;
+    const firstImage = job?.image_urls?.[0];
+    const images: any = firstImage ? [firstImage, ...previousImages] : ['/job-default-image.jpg', ...previousImages];
     return {
-      title: `${job.priority} | Job #${job.job_id}`,
-      description: job.description || `Details for job ${job.id || job.job_id}`,
-      openGraph: {
-        images: job.image_urls?.[0] ? [job.image_urls[0], ...previousImages] : ['/job-default-image.jpg', ...previousImages],
-      },
+      title: safeTitle,
+      description: safeDescription,
+      openGraph: { images },
     };
   } catch (error) {
     console.error('Error generating metadata:', error);
@@ -48,8 +53,8 @@ export async function generateMetadata(
 export default async function JobPage({ params }: Props) {
   try {
     const { jobId } = await params;
-    const session = await getServerSession(authOptions);
-    const accessToken = session?.user?.accessToken;
+    redirect('/auth/signin');
+    const accessToken = '' as any;
 
     // Fetch job and properties
     const job = await fetchJob(jobId, accessToken);

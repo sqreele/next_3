@@ -3,7 +3,6 @@
 
 import { useState, FormEvent, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 import { useRedirectIfAuthenticated } from '@/app/lib/hooks/useAuth';
 import { ERROR_TYPES, ROUTES } from '@/app/lib/config';
@@ -59,11 +58,8 @@ function LoginForm() {
     setError(null);
 
     try {
-      const res = await signIn('credentials', {
-        username,
-        password,
-        redirect: false,
-      });
+      // NextAuth removed - implement Auth0 login separately
+      const res = { ok: false } as any;
 
       if (res?.error) {
         // Handle specific error types

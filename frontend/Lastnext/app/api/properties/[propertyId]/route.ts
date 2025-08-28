@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/lib/auth';
 import { API_CONFIG } from '@/app/lib/config';
 
 export async function GET(
@@ -8,10 +6,8 @@ export async function GET(
   { params }: { params: Promise<{ propertyId: string }> }
 ) {
   try {
-    // Get session to verify authentication
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.accessToken) {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -22,7 +18,7 @@ export async function GET(
       `${API_CONFIG.baseUrl}${API_CONFIG.endpoints.properties}${propertyId}/`,
       {
         headers: {
-          'Authorization': `Bearer ${session.user.accessToken}`,
+          'Authorization': authHeader,
           'Content-Type': 'application/json',
         },
       }

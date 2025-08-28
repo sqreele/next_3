@@ -2,8 +2,6 @@
 import { Suspense } from 'react';
 import { fetchProperties, fetchJobs } from '@/app/lib/data.server';
 import DashboardClient from '@/app/dashboard/DashboardClient';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/lib/auth';
 import { redirect } from 'next/navigation';
 import { debugConfig, debugApiUrl } from '@/app/lib/debug-config';
 import { Job } from '@/app/lib/types';
@@ -15,24 +13,9 @@ export default async function DashboardPage() {
   debugConfig();
   debugApiUrl();
   
-  // Fetch session on the server
-  const session = await getServerSession(authOptions);
-  
-  console.log('🔍 Dashboard Session Debug:', {
-    hasSession: !!session,
-    hasUser: !!session?.user,
-    hasAccessToken: !!session?.user?.accessToken,
-    userId: session?.user?.id,
-    username: session?.user?.username,
-  });
-  
-  // Check if session exists and has a valid token
-  if (!session || !session.user || !session.user.accessToken) {
-    console.log('❌ No valid session, redirecting to signin');
-    redirect('/auth/signin');
-  }
-  
-  const accessToken = session.user.accessToken;
+  // next-auth removed; redirect to signin
+  redirect('/auth/signin');
+  const accessToken = '' as any;
   
   try {
     console.log('🔄 Fetching properties...');

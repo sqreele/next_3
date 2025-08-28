@@ -4,7 +4,6 @@ import * as React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTransition } from 'react';
-import { signOut } from 'next-auth/react';
 import {
   Home,
   LineChart,
@@ -142,7 +141,7 @@ function DesktopNav({ collapsed, toggleCollapse }: {
             <Button 
               variant="outline" 
               className="w-full justify-start gap-2 text-sm h-10 bg-white text-red-500 border-gray-300 hover:bg-red-50 mt-4"
-              onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+              onClick={() => window.location.assign('/auth/signin')}
             >
               <LogOut className="h-4 w-4" />
               Logout
@@ -153,7 +152,7 @@ function DesktopNav({ collapsed, toggleCollapse }: {
             variant="outline" 
             size="icon"
             className="w-full h-10 bg-white text-red-500 border-gray-300 hover:bg-red-50"
-            onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+            onClick={() => window.location.assign('/auth/signin')}
             title="Logout"
           >
             <LogOut className="h-4 w-4" />
@@ -301,7 +300,7 @@ function MobileNav() {
             className="w-full justify-start gap-2 text-sm h-10 bg-white text-red-500 border-gray-300 hover:bg-red-50" 
             onClick={() => {
               setOpen(false);
-              signOut({ callbackUrl: '/auth/signin' });
+              window.location.assign('/auth/signin');
             }}
           >
             <LogOut className="h-4 w-4" />

@@ -5,7 +5,6 @@ import { preventiveMaintenanceService } from '@/app/lib/PreventiveMaintenanceSer
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useSession } from "next-auth/react";
 import { 
   PreventiveMaintenance, 
   getImageUrl,
@@ -32,7 +31,7 @@ interface PreventiveMaintenanceClientProps {
 }
 
 export default function PreventiveMaintenanceClient({ maintenanceData }: PreventiveMaintenanceClientProps) {
-  const { data: session, status } = useSession();  
+  const session: any = null; const status = 'unauthenticated' as const;  
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

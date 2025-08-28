@@ -1,10 +1,8 @@
 'use client';
-
-import { useSession } from 'next-auth/react';
 import { useState } from 'react';
 
 export default function DebugSession() {
-  const { data: session, status } = useSession();
+  const session: any = null; const status = 'unauthenticated' as const;
   const [apiTest, setApiTest] = useState<any>(null);
   const [fullAuthTest, setFullAuthTest] = useState<any>(null);
   const [sessionTest, setSessionTest] = useState<any>(null);
@@ -60,9 +58,7 @@ export default function DebugSession() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-lg shadow">
           <h2 className="text-xl mb-4">Client Session Status: {status}</h2>
-          <pre className="bg-gray-100 p-4 rounded text-xs overflow-auto max-h-96">
-            {JSON.stringify(session, null, 2)}
-          </pre>
+          <pre className="bg-gray-100 p-4 rounded text-xs overflow-auto max-h-96">{JSON.stringify(session, null, 2)}</pre>
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow">

@@ -12,7 +12,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/ta
 import { Job, Property, JobStatus, STATUS_VARIANTS, Room } from '@/app/lib/types';
 import { useRouter } from 'next/navigation';
 import { useProperty } from '@/app/lib/PropertyContext';
-import { useSession } from 'next-auth/react';
 
 export default function SearchContent() {
   const searchParams = useSearchParams();
@@ -24,9 +23,8 @@ export default function SearchContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Get auth token from session
-  const { data: session } = useSession();
-  const accessToken = session?.user?.accessToken;
+  // next-auth removed; no access token from session
+  const accessToken = undefined;
   // Get currently selected property (fallback to first user property if available)
   const { selectedProperty, userProperties } = useProperty();
 

@@ -467,7 +467,7 @@ export const PreventiveMaintenanceProvider: React.FC<PreventiveMaintenanceProvid
  );
 
  // Initialize data on component mount
-   const { status } = useSession();
+  const status = 'unauthenticated' as const;
 
   useEffect(() => {
     if (status !== 'authenticated') return;

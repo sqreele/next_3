@@ -3,8 +3,6 @@ import { Suspense } from 'react';
 import { Metadata } from 'next';
 import CreateJobForm from '@/app/components/jobs/CreateJobForm';
 import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/lib/auth'; // Correct path to your authOptions
 
 export const dynamic = 'force-dynamic';
 
@@ -35,13 +33,7 @@ export const metadata: Metadata = {
 };
 
 export default async function CreateJobPage() {
-  // Server-side session check
-  const session = await getServerSession(authOptions);
-  console.log('Server session:', session); // Debug log
-
-  if (!session) {
-    redirect('/auth/signin');
-  }
+  redirect('/auth/signin');
 
   return (
     <div className="space-y-4 p-4 sm:p-8 w-full max-w-2xl mx-auto">

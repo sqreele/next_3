@@ -3,7 +3,6 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useEffect, Dispatch, SetStateAction } from 'react'; // Import Dispatch, SetStateAction
-import { useSession } from 'next-auth/react';
 import { type UserProfile, type UserContextType, type Property } from '@/app/lib/types'; // Import Property if needed for profile structure
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
@@ -17,7 +16,7 @@ interface FetchError extends Error {
 }
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
-  const { data: session, status } = useSession();
+  const session: any = null; const status = 'unauthenticated' as const;
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true); // Start loading true until initial fetch attempt
   const [error, setError] = useState<string | null>(null);

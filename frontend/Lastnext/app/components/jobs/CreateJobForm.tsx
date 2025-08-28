@@ -10,7 +10,7 @@ import { Plus, ChevronDown, ChevronUp, Loader } from 'lucide-react';
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { Alert, AlertDescription } from "@/app/components/ui/alert";
-import { useSession, signIn } from 'next-auth/react';
+// next-auth removed
 import { Label } from "@/app/components/ui/label";
 import RoomAutocomplete from '@/app/components/jobs/RoomAutocomplete';
 import FileUpload from '@/app/components/jobs/FileUpload';
@@ -81,7 +81,7 @@ const CreateJobForm: React.FC<{ onJobCreated?: () => void }> = ({ onJobCreated }
   const [rooms, setRooms] = useState<Room[]>([]);
   const [topics, setTopics] = useState<TopicFromAPI[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const { data: session, status } = useSession();
+  const session: any = null; const status: 'authenticated' | 'unauthenticated' = 'unauthenticated';
   const router = useRouter();
   const { triggerJobCreation } = useJob();
   const { selectedProperty, userProfile } = useUser();
@@ -94,8 +94,7 @@ const CreateJobForm: React.FC<{ onJobCreated?: () => void }> = ({ onJobCreated }
   }, [userProfile?.properties]);
 
   const fetchData = useCallback(async () => {
-    if (!session?.user?.accessToken) return;
-    const headers = { Authorization: `Bearer ${session.user.accessToken}` };
+    const headers: any = {};
 
     try {
       setError(null);
@@ -120,10 +119,8 @@ const CreateJobForm: React.FC<{ onJobCreated?: () => void }> = ({ onJobCreated }
   }, [session?.user?.accessToken, selectedProperty]);
 
   useEffect(() => {
-    if (status === 'authenticated' && session?.user?.accessToken) {
-      fetchData();
-    }
-  }, [status, session?.user?.accessToken, fetchData, selectedProperty]);
+    fetchData();
+  }, [fetchData, selectedProperty]);
 
   const formatApiErrors = (data: any): string => {
     if (!data) return 'Unknown error';
@@ -149,7 +146,7 @@ const CreateJobForm: React.FC<{ onJobCreated?: () => void }> = ({ onJobCreated }
   const handleSubmit = async (values: FormValues, { resetForm, setSubmitting }: { resetForm: () => void; setSubmitting: (isSubmitting: boolean) => void }) => {
     if (!session?.user) {
       setError('Please login first');
-      await signIn();
+      window.location.assign('/auth/signin');
       return;
     }
 
@@ -217,22 +214,7 @@ const CreateJobForm: React.FC<{ onJobCreated?: () => void }> = ({ onJobCreated }
     }
   };
 
-  if (status === 'loading') {
-    return (
-      <div className="text-center p-6">
-        <Loader className="inline-block animate-spin mr-2 h-5 w-5" /> Loading session...
-      </div>
-    );
-  }
-
-  if (status === 'unauthenticated') {
-    return (
-      <div className="text-center p-6 space-y-4">
-        <p>Please log in to create a job.</p>
-        <Button onClick={() => signIn()}>Log In</Button>
-      </div>
-    );
-  }
+  // Auth gating removed; assume access managed elsewhere
 
   if (!selectedProperty) {
     return (

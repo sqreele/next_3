@@ -2,7 +2,6 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useSession } from "next-auth/react";
 // Import specific functions needed from the updated data.ts
 import { fetchJobs, fetchJobsForProperty } from "@/app/lib/data";
 import { useUser } from "@/app/lib/user-context";
@@ -26,7 +25,7 @@ interface UseJobsDataReturn {
 }
 
 export function useJobsData(options?: UseJobsDataOptions): UseJobsDataReturn {
-  const { data: session, status: sessionStatus } = useSession();
+  const session: any = null; const sessionStatus = 'unauthenticated' as const;
   const { userProfile } = useUser();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -114,19 +113,8 @@ export function useJobsData(options?: UseJobsDataOptions): UseJobsDataReturn {
 
   // Local state modifiers (addJob, updateJob, removeJob) remain the same as your provided code
   const addJob = useCallback((newJob: Job) => {
-     // Check if the job matches the current filters (user filter mainly now)
-     const userId = session?.user?.id;
-     const username = session?.user?.username;
-     const matchesUser = newJob.user && userId && username ? (String(newJob.user) === String(userId) || String(newJob.user) === username) : false;
-     // Also check property if activePropertyId is set
-     const matchesProperty = !activePropertyId || (newJob.property_id && String(newJob.property_id) === activePropertyId);
-
-     if (matchesProperty && matchesUser) {
-        setJobs(prevJobs => [newJob, ...prevJobs]);
-     } else {
-        console.log("New job added but does not match current user/property filters.");
-     }
-  }, [activePropertyId, session?.user?.id, session?.user?.username]);
+     setJobs(prevJobs => [newJob, ...prevJobs]);
+  }, []);
 
   const updateJob = useCallback((updatedJob: Job) => {
     setJobs(prevJobs =>

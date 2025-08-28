@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useProperty } from '@/app/lib/PropertyContext';
 import { useUser } from '@/app/lib/user-context';
-import { useSession } from 'next-auth/react';
+// next-auth removed
 import { redirect } from 'next/navigation';
 import PreventiveMaintenanceDashboard from '@/app/dashboard/Preventive_maintenance/PreventiveMaintenanceDashboard';
 import { Badge } from '@/app/components/ui/badge';
@@ -15,7 +15,7 @@ import { Wrench, AlertTriangle, Building } from 'lucide-react';
 export default function PreventiveMaintenancePage() {
   const { selectedProperty, hasProperties } = useProperty();
   const { userProfile, loading: userLoading } = useUser();
-  const { status } = useSession();
+  const status = 'unauthenticated' as const;
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export default function PreventiveMaintenancePage() {
   }, [status]);
 
   // Handle loading state
-  if (status === 'loading' || userLoading || !isClient) {
+  if (userLoading || !isClient) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-4">

@@ -1,15 +1,7 @@
 // lib/fetch-client.ts
-import { getSession } from 'next-auth/react';
-
 export async function fetchWithAuth(url: string, options: RequestInit = {}) {
-  const session = await getSession();
-  
-  if (!session?.user?.accessToken) {
-    throw new Error('No access token');
-  }
-
   const headers = new Headers(options.headers);
-  headers.set('Authorization', `Bearer ${session.user.accessToken}`);
+  // Expect caller to set Authorization header explicitly
 
   try {
     const response = await fetch(url, {

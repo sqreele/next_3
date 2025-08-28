@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { useSession, signOut } from 'next-auth/react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,7 +14,7 @@ import { cn } from '@/app/lib/utils';
 import Link from 'next/link';
 
 const User: React.FC = () => {
-  const { data: session } = useSession();
+  const session: any = null;
 
   if (!session?.user) {
     return null;
@@ -113,7 +112,7 @@ const User: React.FC = () => {
 
         <DropdownMenuItem 
           className="rounded-md cursor-pointer text-red-500 hover:bg-red-50"
-          onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+          onClick={() => window.location.assign('/auth/signin')}
         >
           <LogOut className="mr-2 h-4 w-4" />
           <span>Logout</span>

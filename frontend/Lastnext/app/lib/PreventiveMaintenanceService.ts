@@ -8,7 +8,6 @@ import {
   type FrequencyType,
   type ServiceResponse,
 } from './preventiveMaintenanceModels';
-import { getSession } from "next-auth/react";
 import { jwtDecode } from "jwt-decode";
 import axios from "axios";
 

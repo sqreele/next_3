@@ -1,39 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/lib/auth';
 import { API_CONFIG } from '@/app/lib/config';
 
 export async function GET(request: NextRequest) {
   try {
-    // Get session to verify authentication
-    const session = await getServerSession(authOptions);
-    
-    console.log('🔍 Properties API Debug:', {
-      hasSession: !!session,
-      hasUser: !!session?.user,
-      hasAccessToken: !!session?.user?.accessToken,
-      userId: session?.user?.id,
-      username: session?.user?.username,
-      accessTokenLength: session?.user?.accessToken?.length
-    });
-    
-    if (!session?.user?.accessToken) {
-      console.log('❌ No access token in properties session');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    console.log('🔍 Properties API Debug');
 
     const apiUrl = `${API_CONFIG.baseUrl}${API_CONFIG.endpoints.properties}`;
     console.log('🔍 Properties API calling:', apiUrl);
-    console.log('🔍 Properties API headers:', {
-      hasAuth: !!session.user.accessToken,
-      authLength: session.user.accessToken?.length,
-      contentType: 'application/json'
-    });
+    console.log('🔍 Properties API headers:', { hasAuthHeader: !!request.headers.get('authorization'), contentType: 'application/json' });
 
     // Fetch properties from the external API
     const response = await fetch(apiUrl, {
       headers: {
-        'Authorization': `Bearer ${session.user.accessToken}`,
+        'Authorization': request.headers.get('authorization') || '',
         'Content-Type': 'application/json',
       },
     });

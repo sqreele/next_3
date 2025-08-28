@@ -1,6 +1,14 @@
-// app/api/auth/[...nextauth]/route.ts
-import NextAuth from "next-auth";
-import authOptions from "@/app/lib/auth"; // Default import
+// Removed NextAuth route handler as we are migrating away from next-auth
+export async function GET() {
+  return new Response(JSON.stringify({ message: "Auth route disabled" }), {
+    status: 410,
+    headers: { "Content-Type": "application/json" },
+  });
+}
 
-const handler = NextAuth(authOptions);
-export { handler as GET, handler as POST };
+export async function POST() {
+  return new Response(JSON.stringify({ message: "Auth route disabled" }), {
+    status: 410,
+    headers: { "Content-Type": "application/json" },
+  });
+}

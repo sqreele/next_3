@@ -2,7 +2,7 @@
 "use client";
 
 import React from "react";
-import { useSession } from "next-auth/react";
+// next-auth removed
 import { useRouter } from "next/navigation";
 import {
   AlertCircle, Home, Pencil, Trash2, Loader, RefreshCcw,
@@ -385,7 +385,7 @@ DeleteDialog.displayName = 'DeleteDialog';
 // --- Main MyJobs component ---
 const MyJobs: React.FC<{ activePropertyId?: string }> = ({ activePropertyId }) => {
   const { toast } = useToast();
-  const { data: session, status: sessionStatus } = useSession();
+  const session: any = null; const sessionStatus = 'unauthenticated' as const;
   const { userProfile, loading: userLoading, selectedProperty } = useUser();
   const router = useRouter();
 

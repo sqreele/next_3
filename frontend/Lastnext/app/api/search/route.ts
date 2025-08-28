@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/lib/auth';
 import { API_CONFIG } from '@/app/lib/config';
 
 export async function GET(request: NextRequest) {
   try {
-    // Get session to verify authentication
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.accessToken) {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -42,7 +38,7 @@ export async function GET(request: NextRequest) {
       searchPromises.push(
         fetch(`${API_CONFIG.baseUrl}${API_CONFIG.endpoints.jobs}?search=${encodeURIComponent(searchTerm)}`, {
           headers: {
-            'Authorization': `Bearer ${session.user.accessToken}`,
+            'Authorization': authHeader,
             'Content-Type': 'application/json',
           },
         }).then(res => res.ok ? res.json() : { results: [] })
@@ -54,7 +50,7 @@ export async function GET(request: NextRequest) {
       searchPromises.push(
         fetch(`${API_CONFIG.baseUrl}${API_CONFIG.endpoints.properties}?search=${encodeURIComponent(searchTerm)}`, {
           headers: {
-            'Authorization': `Bearer ${session.user.accessToken}`,
+            'Authorization': authHeader,
             'Content-Type': 'application/json',
           },
         }).then(res => res.ok ? res.json() : [])
@@ -66,7 +62,7 @@ export async function GET(request: NextRequest) {
       searchPromises.push(
         fetch(`${API_CONFIG.baseUrl}${API_CONFIG.endpoints.rooms}?search=${encodeURIComponent(searchTerm)}`, {
           headers: {
-            'Authorization': `Bearer ${session.user.accessToken}`,
+            'Authorization': authHeader,
             'Content-Type': 'application/json',
           },
         }).then(res => res.ok ? res.json() : [])
@@ -78,7 +74,7 @@ export async function GET(request: NextRequest) {
       searchPromises.push(
         fetch(`${API_CONFIG.baseUrl}${API_CONFIG.endpoints.topics}?search=${encodeURIComponent(searchTerm)}`, {
           headers: {
-            'Authorization': `Bearer ${session.user.accessToken}`,
+            'Authorization': authHeader,
             'Content-Type': 'application/json',
           },
         }).then(res => res.ok ? res.json() : [])

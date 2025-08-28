@@ -1,31 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/lib/auth';
 import { API_CONFIG } from '@/app/lib/config';
 
 export async function GET(request: NextRequest) {
   try {
     console.log('🔍 Jobs API - Starting request...');
     
-    // Get session to verify authentication
-    const session = await getServerSession(authOptions);
-    
-    console.log('🔍 Jobs API Debug:', {
-      hasSession: !!session,
-      hasUser: !!session?.user,
-      hasAccessToken: !!session?.user?.accessToken,
-      userId: session?.user?.id,
-      username: session?.user?.username,
-      accessTokenLength: session?.user?.accessToken?.length,
-      sessionKeys: session ? Object.keys(session) : [],
-      userKeys: session?.user ? Object.keys(session.user) : []
-    });
-    
-    if (!session?.user?.accessToken) {
-      console.log('❌ No access token in session');
-      console.log('❌ Session structure:', JSON.stringify(session, null, 2));
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // next-auth removed; require Authorization header from client
 
     const { searchParams } = new URL(request.url);
     const queryString = searchParams.toString();
@@ -33,15 +13,14 @@ export async function GET(request: NextRequest) {
     const apiUrl = `${API_CONFIG.baseUrl}${API_CONFIG.endpoints.jobs}${queryString ? `?${queryString}` : ''}`;
     console.log('🔍 Jobs API calling:', apiUrl);
     console.log('🔍 Jobs API headers:', {
-      hasAuth: !!session.user.accessToken,
-      authLength: session.user.accessToken?.length,
+      hasAuthHeader: !!request.headers.get('authorization'),
       contentType: 'application/json'
     });
 
     // Fetch jobs from the external API
     const response = await fetch(apiUrl, {
       headers: {
-        'Authorization': `Bearer ${session.user.accessToken}`,
+        'Authorization': request.headers.get('authorization') || '',
         'Content-Type': 'application/json',
       },
     });
@@ -68,10 +47,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    // Get session to verify authentication
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.accessToken) {
+    // next-auth removed; require Authorization header from client
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -83,7 +61,7 @@ export async function POST(request: NextRequest) {
       {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${session.user.accessToken}`,
+          'Authorization': authHeader,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(body),

@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/lib/auth';
 import { API_CONFIG } from '@/app/lib/config';
 
 export async function GET(
@@ -8,10 +6,8 @@ export async function GET(
   { params }: { params: Promise<{ jobId: string }> }
 ) {
   try {
-    // Get session to verify authentication
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.accessToken) {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -22,7 +18,7 @@ export async function GET(
       `${API_CONFIG.baseUrl}${API_CONFIG.endpoints.jobs}${jobId}/`,
       {
         headers: {
-          'Authorization': `Bearer ${session.user.accessToken}`,
+          'Authorization': authHeader,
           'Content-Type': 'application/json',
         },
       }
@@ -53,10 +49,8 @@ export async function PUT(
   { params }: { params: Promise<{ jobId: string }> }
 ) {
   try {
-    // Get session to verify authentication
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.accessToken) {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -69,7 +63,7 @@ export async function PUT(
       {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${session.user.accessToken}`,
+          'Authorization': authHeader,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(body),
@@ -101,10 +95,8 @@ export async function PATCH(
   { params }: { params: Promise<{ jobId: string }> }
 ) {
   try {
-    // Get session to verify authentication
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.accessToken) {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -117,7 +109,7 @@ export async function PATCH(
       {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${session.user.accessToken}`,
+          'Authorization': authHeader,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(body),
@@ -149,10 +141,8 @@ export async function DELETE(
   { params }: { params: Promise<{ jobId: string }> }
 ) {
   try {
-    // Get session to verify authentication
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.accessToken) {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -164,7 +154,7 @@ export async function DELETE(
       {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${session.user.accessToken}`,
+          'Authorization': authHeader,
           'Content-Type': 'application/json',
         },
       }

@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useSession } from 'next-auth/react';
 import { useUser } from '@/app/lib/user-context';
 import { useProperty } from '@/app/lib/PropertyContext';
 import { Property, Job } from '@/app/lib/types';
@@ -11,7 +10,7 @@ import { Property, Job } from '@/app/lib/types';
  * Custom hook for enhanced property selection and filtering
  */
 export function usePropertySelection() {
-  const { data: session, status: sessionStatus } = useSession();
+  const session: any = null; const sessionStatus = 'unauthenticated' as const;
   const { userProfile, loading: userLoading } = useUser();
   const { selectedProperty, setSelectedProperty } = useProperty();
   const [loading, setLoading] = useState(true);
@@ -19,7 +18,7 @@ export function usePropertySelection() {
   // Determine properties from either source, preferring user context
   const properties = useMemo(() => {
     const userProps = userProfile?.properties || [];
-    const sessionProps = session?.user?.properties || [];
+    const sessionProps: any[] = [];
     
     return userProps.length > 0 ? userProps : sessionProps;
   }, [userProfile?.properties, session?.user?.properties]);

@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useSession } from 'next-auth/react';
 import { Formik, Form, Field, FormikErrors, useFormikContext, FormikHelpers } from 'formik';
 import {
   PreventiveMaintenance,
@@ -71,7 +70,7 @@ const PreventiveMaintenanceForm: React.FC<PreventiveMaintenanceFormProps> = ({
   machineId,
 }) => {
   const { toast } = useToast();
-  const { data: session } = useSession();
+  const session: any = null;
   const {
     userProperties,
     selectedProperty: contextSelectedProperty,

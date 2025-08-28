@@ -1,9 +1,7 @@
 // app/dashboard/rooms/[room_id]/page.tsx
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import { fetchRoom, fetchProperties, fetchJobsForRoom } from '@/app/lib/data.server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/lib/auth';
 import RoomDetailContent from './RoomDetailContent';
 
 type Props = {
@@ -14,8 +12,8 @@ type Props = {
 // Server Component
 export default async function RoomDetailPage({ params }: Props) {
   const { room_id } = await params;
-  const session = await getServerSession(authOptions);
-  const accessToken = session?.user?.accessToken;
+  redirect('/auth/signin');
+  const accessToken = '' as any;
 
   const room = await fetchRoom(room_id, accessToken);
   if (!room) {

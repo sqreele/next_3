@@ -25,7 +25,7 @@ import {
   SelectValue,
 } from "@/app/components/ui/select";
 import { Alert, AlertDescription } from "@/app/components/ui/alert";
-import { useSession, signIn } from 'next-auth/react';
+// next-auth removed
 import { Label } from "@/app/components/ui/label";
 import RoomAutocomplete from './RoomAutocomplete';
 import FileUpload from './FileUpload';
@@ -121,7 +121,7 @@ const CreateJobButton: React.FC<CreateJobButtonProps> = ({ propertyId, onJobCrea
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showRemarks, setShowRemarks] = useState(false);
-  const { data: session, status } = useSession();
+  const session: any = null; const status: 'authenticated' | 'unauthenticated' = 'unauthenticated';
 
   // Effect to close dialog if user logs out
   useEffect(() => {
@@ -131,16 +131,16 @@ const CreateJobButton: React.FC<CreateJobButtonProps> = ({ propertyId, onJobCrea
   // Effect to fetch data when dialog opens (if authenticated)
   useEffect(() => {
     // Only fetch if dialog is open, authenticated, and propertyId is valid
-    if (open && status === 'authenticated' && session?.user?.accessToken && propertyId) {
+    if (open && propertyId) {
       fetchData(propertyId); // Pass propertyId to fetchData
     }
      // Clear data if dialog closes or user logs out to avoid showing stale data
-     if (!open || status !== 'authenticated') {
+     if (!open) {
         setRooms([]);
         setTopics([]);
      }
   // Add propertyId to dependency array
-  }, [open, status, session?.user?.accessToken, propertyId]);
+  }, [open, propertyId]);
 
   // --- 4. (Recommended) Update fetchData to use propertyId ---
   const fetchData = async (currentPropertyId: string) => {
@@ -173,7 +173,7 @@ const CreateJobButton: React.FC<CreateJobButtonProps> = ({ propertyId, onJobCrea
     if (!session?.user) { /* ... auth check ... */
         setError('Please log in to create a job');
         setOpen(false);
-        await signIn(); // Redirect to sign in
+        window.location.assign('/auth/signin');
         return;
     }
     if (!propertyId) { // Add check for propertyId
@@ -249,7 +249,7 @@ const CreateJobButton: React.FC<CreateJobButtonProps> = ({ propertyId, onJobCrea
   // Handle opening the dialog (check auth first)
   const handleAuthClick = async () => {
     if (status === 'unauthenticated') {
-      await signIn(); // Prompt login if not authenticated
+      window.location.assign('/auth/signin');
       return;
     }
     // If authenticated, just open the dialog
@@ -281,8 +281,8 @@ const CreateJobButton: React.FC<CreateJobButtonProps> = ({ propertyId, onJobCrea
           </Alert>
         )}
 
-        {/* Only show form if authenticated */}
-        {status === 'authenticated' ? (
+        {/* Show form unconditionally (auth handled elsewhere) */}
+        {true ? (
           <Formik
             initialValues={initialValues}
             validationSchema={validationSchema}
@@ -480,7 +480,7 @@ const CreateJobButton: React.FC<CreateJobButtonProps> = ({ propertyId, onJobCrea
           // Show sign-in prompt if not authenticated
           <div className="py-4 text-center">
             <p className="mb-4">You need to be signed in to create a job.</p>
-            <Button onClick={() => signIn()}>Sign In</Button>
+            <Button onClick={() => window.location.assign('/auth/signin')}>Sign In</Button>
           </div>
         )}
       </DialogContent>

@@ -23,8 +23,6 @@ import {
 import _ from "lodash";
 import { Job, JobStatus, STATUS_COLORS } from "@/app/lib/types";
 import { useProperty } from "@/app/lib/PropertyContext";
-import { useSession, signOut } from "next-auth/react";
-import { Session } from "next-auth";
 import { fetchJobs } from "@/app/lib/data";
 import { Button } from "@/app/components/ui/button";
 import Link from "next/link";
@@ -36,11 +34,7 @@ interface PropertyJobsDashboardProps {
 
 const PropertyJobsDashboard = ({ initialJobs = [] }: PropertyJobsDashboardProps) => {
   const { selectedProperty, userProperties } = useProperty();
-  const { data: session, status, update } = useSession() as {
-    data: Session | null;
-    status: "authenticated" | "unauthenticated" | "loading";
-    update: () => Promise<Session | null>;
-  };
+  const session: any = null; const status: 'authenticated' | 'unauthenticated' = 'unauthenticated'; const update = async () => null as any;
   const { jobCreationCount } = useJob();
   const [allJobs, setAllJobs] = useState<Job[]>(initialJobs);
   const [filteredJobs, setFilteredJobs] = useState<Job[]>(initialJobs);
@@ -59,14 +53,14 @@ const PropertyJobsDashboard = ({ initialJobs = [] }: PropertyJobsDashboardProps)
       return true;
     } catch (err) {
       setError("Session expired. Please log in again.");
-      signOut();
+      window.location.assign('/auth/signin');
       return false;
     }
   };
 
   // Load jobs with optimized error handling
   const loadJobs = async () => {
-    if (status !== "authenticated" || !session?.user) return;
+    // Proceed without next-auth; adjust once Auth0 integrated
 
     setIsLoading(true);
     setError(null);
@@ -238,7 +232,7 @@ const PropertyJobsDashboard = ({ initialJobs = [] }: PropertyJobsDashboardProps)
   }, [filteredJobs]);
 
   // Loading state
-  if (status === "loading" || isLoading) {
+  if (isLoading) {
     return (
       <Card className="w-full p-4">
         <CardContent className="text-center">
@@ -249,7 +243,7 @@ const PropertyJobsDashboard = ({ initialJobs = [] }: PropertyJobsDashboardProps)
   }
 
   // Authentication state
-  if (status === "unauthenticated") {
+  if (true) {
     return (
       <Card className="w-full p-4 bg-yellow-50 border border-yellow-200 rounded-md">
         <CardContent className="text-center space-y-4">

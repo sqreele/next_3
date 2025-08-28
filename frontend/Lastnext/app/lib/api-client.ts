@@ -2,7 +2,6 @@
 "use client";
 
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from "axios";
-import { getSession, signOut } from "next-auth/react";
 import { jwtDecode } from "jwt-decode";
 import { useState,useCallback} from 'react'
 
@@ -93,10 +92,8 @@ async function refreshToken(refreshTokenValue: string): Promise<string | null> {
     });
 
     if (!response.ok) {
-       // If refresh fails (e.g., 401 Unauthorized), log out user
        if (response.status === 401) {
-            console.error("[Auth] Refresh token failed or expired. Logging out.");
-            await signOut({ redirect: false });
+            console.error("[Auth] Refresh token failed or expired. Redirecting to sign-in.");
        }
        throw new ApiError(`Token refresh failed with status: ${response.status}`, response.status);
     }
@@ -125,9 +122,8 @@ apiClient.interceptors.request.use(
         return config;
     }
 
-    const session = await getSession();
-    const accessToken = session?.user?.accessToken;
-    const refreshTokenValue = session?.user?.refreshToken;
+    const accessToken = undefined;
+    const refreshTokenValue = undefined;
 
     if (!accessToken) {
       console.log("[RequestInterceptor] No access token found in session.");
@@ -144,8 +140,7 @@ apiClient.interceptors.request.use(
         console.log("[RequestInterceptor] Access token expired or needs refresh.");
 
         if (!refreshTokenValue) {
-            console.error("[RequestInterceptor] Access token expired, but no refresh token available. Logging out.");
-            await signOut({ redirect: false });
+            console.error("[RequestInterceptor] Access token expired, but no refresh token available. Redirect to sign-in.");
             throw new ApiError("Session expired, no refresh token.", 401);
         }
 
@@ -243,12 +238,8 @@ apiClient.interceptors.response.use(
       console.log(`[ResponseInterceptor] Received 401, attempt ${originalRequest._retry + 1}/${MAX_RETRIES}.`);
       originalRequest._retry++;
 
-      const session = await getSession();
-      if (!session?.user?.refreshToken) {
-          console.error("[ResponseInterceptor] 401 received, but no refresh token available. Logging out.");
-          await signOut({ redirect: false });
-          return Promise.reject(new ApiError("Session expired or invalid.", 401));
-      }
+      // No session handling; cannot refresh without next-auth
+      return Promise.reject(new ApiError("Unauthorized.", 401));
 
       // If not already refreshing, start the refresh
       if (!isRefreshing) {
@@ -285,8 +276,6 @@ apiClient.interceptors.response.use(
           isRefreshing = false;
           refreshPromise = null;
           processPendingRequests(null);
-          // Logout if refresh fails definitively
-          await signOut({ redirect: false });
           return Promise.reject(new ApiError("Session refresh failed.", 401));
       }
     }

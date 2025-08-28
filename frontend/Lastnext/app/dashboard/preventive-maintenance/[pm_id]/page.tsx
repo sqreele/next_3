@@ -10,8 +10,7 @@ import {
 } from '@/app/lib/preventiveMaintenanceModels'; // Ensure this path is correct
 
 // Import NextAuth.js utilities for server-side session
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/lib/auth"
+import { redirect } from 'next/navigation';
 import { API_CONFIG } from '@/app/lib/config';
 
 // Function to check if topics is a Topic[]
@@ -46,12 +45,9 @@ function renderMachines(machines: any[] | null | undefined) {
 async function getPreventiveMaintenance(pmId: string): Promise<PreventiveMaintenance | null> {
   console.log(`[SERVER_FETCH] Initiating fetch for PM ID: ${pmId}`);
 
-  // 1. Get the server-side session
-  const session = await getServerSession(authOptions);
-
-  // 2. Extract the access token
-  // Make sure your NextAuth callbacks populate session.user.accessToken
-  const accessToken = session?.user?.accessToken as string | undefined;
+  // 1. Redirect to signin since next-auth is removed
+  redirect('/auth/signin');
+  const accessToken = undefined;
 
   if (!accessToken) {
     console.error(`[SERVER_FETCH] No access token found in session for PM ID: ${pmId}. User might not be authenticated or token is missing in session.`);

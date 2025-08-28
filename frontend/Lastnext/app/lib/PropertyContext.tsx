@@ -1,6 +1,5 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
-import { useSession } from "next-auth/react";
 
 interface Property {
   property_id: string; // e.g., "PAA1A6A0E"
@@ -21,7 +20,7 @@ interface PropertyContextType {
 const PropertyContext = createContext<PropertyContextType | undefined>(undefined);
 
 export function PropertyProvider({ children }: { children: ReactNode }) {
-  const { data: session } = useSession();
+  const session: any = null;
   const [selectedProperty, setSelectedPropertyState] = useState<string | null>(null);
   const [userProperties, setUserProperties] = useState<Property[]>([]);
   

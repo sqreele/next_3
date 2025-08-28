@@ -1,7 +1,5 @@
 // app/api/topics/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/lib/auth';
 import { API_CONFIG, DEBUG_CONFIG } from '@/app/lib/config';
 import { getErrorMessage } from '@/app/lib/utils/error-utils';
 
@@ -13,37 +11,9 @@ export async function GET(request: NextRequest) {
       console.log('🔍 API_CONFIG.baseUrl:', API_CONFIG.baseUrl);
     }
 
-    const session = await getServerSession(authOptions);
-
-    if (DEBUG_CONFIG.logSessions) {
-      console.log('🔍 Topics API Session Debug:', {
-        hasSession: !!session,
-        hasUser: !!session?.user,
-        hasAccessToken: !!session?.user?.accessToken,
-        userId: session?.user?.id,
-        username: session?.user?.username,
-        accessTokenLength: session?.user?.accessToken?.length,
-        sessionError: session?.error,
-      });
-    }
-
-    if (!session?.user?.accessToken) {
-      console.log('❌ No access token in topics API session');
-      return NextResponse.json(
-        {
-          error: 'Unauthorized',
-          debug: DEBUG_CONFIG.logSessions
-            ? {
-                hasSession: !!session,
-                hasUser: !!session?.user,
-                sessionKeys: session ? Object.keys(session) : [],
-                userKeys: session?.user ? Object.keys(session.user) : [],
-                sessionError: session?.error,
-              }
-            : undefined,
-        },
-        { status: 401 }
-      );
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { search } = new URL(request.url);
@@ -53,12 +23,11 @@ export async function GET(request: NextRequest) {
 
     if (DEBUG_CONFIG.logApiCalls) {
       console.log('🔍 Calling Django API (topics):', apiUrl);
-      console.log('🔍 With token length:', session.user.accessToken.length);
     }
 
     const response = await fetch(apiUrl, {
       headers: {
-        Authorization: `Bearer ${session.user.accessToken}`,
+        Authorization: authHeader,
         'Content-Type': 'application/json',
         'User-Agent': 'NextJS-Server/1.0',
       },

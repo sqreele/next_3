@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, ReactNode, MouseEvent } from 'react';
-import { useSession } from 'next-auth/react';
 import { Job, JobStatus } from '@/app/lib/types';
 import { fetchWithToken } from '@/app/lib/data.server'; // Correct: named import
 import {
@@ -28,7 +27,7 @@ interface UpdateStatusModalProps {
 }
 
 export function UpdateStatusModal({ job, onComplete, children }: UpdateStatusModalProps) {
-  const { data: session } = useSession();
+  const session: any = null;
   const [selectedStatus, setSelectedStatus] = useState<JobStatus>(job.status);
   const [isUpdating, setIsUpdating] = useState(false);
   const [open, setOpen] = useState(false);

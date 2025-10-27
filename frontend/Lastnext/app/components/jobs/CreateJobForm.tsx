@@ -13,14 +13,12 @@ import { Alert, AlertDescription } from "@/app/components/ui/alert";
 import { useSession, signIn } from 'next-auth/react';
 import { Label } from "@/app/components/ui/label";
 import RoomAutocomplete from '@/app/components/jobs/RoomAutocomplete';
-import FileUpload from '@/app/components/jobs/FileUpload';
 import { Room, TopicFromAPI } from '@/app/lib/types';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/app/lib/user-context';
 import { useJob } from '@/app/lib/JobContext';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 interface FormValues {
   description: string;
@@ -32,7 +30,6 @@ interface FormValues {
     description: string;
   };
   room: Room | null;
-  files: File[];
   is_defective: boolean;
   is_preventivemaintenance: boolean;
 }
@@ -53,14 +50,6 @@ const validationSchema = Yup.object().shape({
       room_id: Yup.number().typeError('Invalid Room ID').required('Room ID missing').min(1, 'Room must be selected'),
       name: Yup.string().required('Room name missing'),
     }),
-  files: Yup.array()
-    .of(
-      Yup.mixed<File>()
-        .test('fileSize', 'File too large (max 5MB)', (value) => !value || !(value instanceof File) || value.size <= MAX_FILE_SIZE)
-        .test('fileType', 'Only image files allowed', (value) => !value || !(value instanceof File) || value.type.startsWith('image/'))
-    )
-    .min(1, 'At least one image is required')
-    .required('At least one image is required'),
   is_defective: Yup.boolean().default(false),
   is_preventivemaintenance: Yup.boolean().default(false),
 });
@@ -72,7 +61,6 @@ const initialValues: FormValues = {
   remarks: '',
   topic: { title: '', description: '' },
   room: null,
-  files: [],
   is_defective: false,
   is_preventivemaintenance: false,
 };
@@ -137,15 +125,6 @@ const CreateJobForm: React.FC<{ onJobCreated?: () => void }> = ({ onJobCreated }
     return 'Validation failed';
   };
 
-  const validateFiles = (files: File[]): string | null => {
-    if (!files.length) return 'At least one image is required';
-    for (const file of files) {
-      if (!file.type.startsWith('image/')) return `File "${file.name}" is not an image`;
-      if (file.size > MAX_FILE_SIZE) return `File "${file.name}" exceeds 5MB limit`;
-    }
-    return null;
-  };
-
   const handleSubmit = async (values: FormValues, { resetForm, setSubmitting }: { resetForm: () => void; setSubmitting: (isSubmitting: boolean) => void }) => {
     if (!session?.user) {
       setError('Please login first');
@@ -165,13 +144,6 @@ const CreateJobForm: React.FC<{ onJobCreated?: () => void }> = ({ onJobCreated }
       return;
     }
 
-    const fileError = validateFiles(values.files);
-    if (fileError) {
-      setError(fileError);
-      setSubmitting(false);
-      return;
-    }
-
     setError(null);
 
     try {
@@ -184,16 +156,10 @@ const CreateJobForm: React.FC<{ onJobCreated?: () => void }> = ({ onJobCreated }
         title: values.topic.title.trim(),
         description: values.topic.description.trim() || '',
       }));
-      if (values.remarks?.trim()) {
-        formData.append('remarks', values.remarks.trim());
-      }
+      formData.append('remarks', values.remarks?.trim() || '');
       formData.append('user_id', session.user.id);
-      formData.append('property_id', selectedProperty);
       formData.append('is_defective', values.is_defective ? 'true' : 'false');
       formData.append('is_preventivemaintenance', values.is_preventivemaintenance ? 'true' : 'false');
-      values.files.forEach(file => {
-        formData.append('images', file);
-      });
 
       const response = await axios.post(`${API_BASE_URL}/api/v1/jobs/`, formData, {
         headers: {
@@ -374,16 +340,6 @@ const CreateJobForm: React.FC<{ onJobCreated?: () => void }> = ({ onJobCreated }
                 className={`w-full min-h-[80px] ${touched.remarks && errors.remarks ? 'border-red-500' : 'border-gray-300'}`}
               />
               {touched.remarks && errors.remarks && <p className="text-xs text-red-600 mt-1">{errors.remarks}</p>}
-            </div>
-
-            {/* Files */}
-            <div className="space-y-1">
-              <Label className="font-medium">Images *</Label>
-              <FileUpload
-                onFileSelect={(selectedFiles) => setFieldValue('files', selectedFiles)}
-                error={touched.files && typeof errors.files === 'string' ? errors.files : undefined}
-                disabled={isSubmitting}
-              />
             </div>
 
             {/* Checkboxes */}

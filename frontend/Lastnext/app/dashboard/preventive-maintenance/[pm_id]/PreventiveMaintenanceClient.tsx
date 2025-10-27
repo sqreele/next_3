@@ -744,7 +744,7 @@ export default function PreventiveMaintenanceClient({ maintenanceData }: Prevent
                     <img 
                       src={beforeImageUrl} 
                       alt="Before maintenance" 
-                      className="w-full max-h-64 object-contain rounded-lg border border-gray-300"
+                      className="w-1/5 h-auto object-contain rounded-lg border border-gray-300 mx-auto"
                       onError={(e: any) => {
                         e.target.style.display = 'none';
                         if (e.target.nextSibling) {
@@ -770,7 +770,7 @@ export default function PreventiveMaintenanceClient({ maintenanceData }: Prevent
                     <img 
                       src={afterImageUrl} 
                       alt="After maintenance" 
-                      className="w-full max-h-64 object-contain rounded-lg border border-gray-300"
+                      className="w-1/5 h-auto object-contain rounded-lg border border-gray-300 mx-auto"
                       onError={(e: any) => {
                         e.target.style.display = 'none';
                         if (e.target.nextSibling) {
